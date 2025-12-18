@@ -1,7 +1,18 @@
 import { verifyToken } from '@clerk/backend'
 import { nanoid } from 'nanoid'
-import { SessionMinimumSchema, type AppError, type User } from '~/schema'
+import { type AppError, type User } from '~/schema'
 import { getRandomName } from './utils'
+import z from 'zod'
+
+export const SessionMinimumSchema = z.object({
+	user_id: z.string(),
+	username: z.string().nullable().optional(),
+	created_at: z.number(),
+	email: z.string(),
+})
+
+export type SessionMin = z.infer<typeof SessionMinimumSchema>
+
 
 const CLERK_SECRET = Bun.env['CLERK_SECRET_KEY']
 
@@ -61,8 +72,6 @@ export async function manageAuthentication(token: any, inDevMode: boolean): Prom
 			},
 		}
 	}
-
-	console.log('tokenPayload', tokenPayload)
 
 	const { success, data } = SessionMinimumSchema.safeParse(tokenPayload)
 

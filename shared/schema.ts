@@ -134,13 +134,3 @@ export class ServiceError extends Error {
 	}
 }
 
-// SESSION
-
-export const SessionMinimumSchema = z.object({
-	user_id: z.string(),
-	username: z.string().optional(),
-	created_at: z.number(),
-	email: z.string(),
-})
-
-export type SessionMin = z.infer<typeof SessionMinimumSchema>
