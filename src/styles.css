@@ -1,0 +1,225 @@
+/* sorry :D */
+* {
+	box-sizing: border-box;
+	margin: 0;
+	font-weight: normal;
+}
+
+:root {
+	/* custom style configs */
+
+	--bg-color: #0e0e0e;
+	--text-color-primary: #ececec;
+	--text-color-secondary: #b8b8b8;
+
+	--border-primary: hsl(0, 0%, 28%);
+
+	--active-playing-color: hsl(125 100% 50% / 1);
+
+	--window-w-padding: 2rem;
+
+	/* default, usually overwritten per usage */
+	--window-w-max-width: 1100px;
+
+	--default-font-size: 14px;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+	-moz-text-size-adjust: 100%;
+	text-size-adjust: 100%;
+
+	/*  technically bad practive, but i really like 1rem = 10px */
+	font-size: 62.5%;
+
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	color-scheme: dark light;
+
+	scroll-behavior: smooth;
+}
+
+body {
+	font-size: var(--default-font-size);
+
+	/* default for non supporting browsers */
+	min-height: 100vh;
+	min-height: 100svh;
+
+	background-color: var(--bg-color);
+}
+
+/* vue app root */
+#app {
+	min-height: inherit;
+	display: grid;
+
+	/*  sanity :D */
+	overflow-x: hidden;
+}
+
+.custom-grid {
+	display: grid;
+	justify-items: start;
+	grid-template-columns:
+		[full-width-start breakout-left-start] minmax(
+			var(--window-w-padding),
+			1fr
+		) [content-start breakout-right-start] min(
+			100% - calc(var(--window-w-padding) * 2),
+			var(--window-w-max-width)
+		)
+		[content-end breakout-left-end] minmax(
+			var(--window-w-padding),
+			1fr
+		) [full-width-end breakout-right-end];
+}
+
+.custom-grid > * {
+	grid-column: content;
+}
+
+.full-width {
+	grid-column: full-width;
+}
+
+.breakout-right {
+	grid-column: breakout-right;
+}
+
+.breakout-left {
+	grid-column: breakout-left;
+}
+
+/* default font styles */
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+span,
+a,
+button,
+.txt {
+	font-family:
+		inhesystem-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji',
+		'Segoe UI Emoji', 'Segoe UI Symbol';
+	font-weight: 400;
+	font-size: 16px;
+	line-height: 140%;
+	text-transform: none;
+	text-decoration: none;
+	text-align: left;
+	color: var(--text-color-primary);
+}
+
+/* mini tailwind-like css */
+
+.small {
+	font-size: 13px;
+}
+
+.big {
+	font-size: 19px;
+}
+
+.mono {
+	font-family: monospace;
+}
+
+.white {
+	color: var(--text-color-primary);
+}
+
+.dim {
+	color: var(--text-color-secondary);
+}
+
+.bold {
+	font-weight: bold;
+}
+
+.black {
+	font-weight: bolder;
+}
+
+.italic,
+.cursive {
+	font-style: italic;
+}
+
+.caps {
+	text-transform: uppercase;
+}
+
+.underline {
+	text-decoration: underline;
+}
+
+.txt *,
+button * {
+	font-family: inherit;
+	font-weight: inherit;
+	font-style: inherit;
+	font-size: inherit;
+	line-height: inherit;
+	letter-spacing: inherit;
+	text-transform: inherit;
+	text-decoration: inherit;
+	text-align: inherit;
+}
+
+.no-select,
+.no-select * {
+	user-select: none;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	-o-user-select: none;
+}
+
+.relative {
+	position: relative;
+}
+
+.balance {
+	text-wrap: balane;
+}
+
+.nowrap {
+	white-space: nowrap;
+}
+
+button {
+	border: none;
+	border-radius: 0.5rem;
+	height: 3rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 1.2rem;
+	gap: 1rem;
+	background-color: var(--border-primary);
+	cursor: pointer;
+	box-shadow: inset 0px 0px 0px 1px color-mix(in lch, transparent, white 10%);
+
+	transition:
+		box-shadow 100ms,
+		background-color 100ms;
+	outline: none;
+}
+
+button:hover:not(:disabled) {
+	background-color: color-mix(in lch, var(--border-primary), white 15%);
+	box-shadow: inset 0px 0px 0px 1px color-mix(in lch, transparent, white 25%);
+}
+
+button:focus-visible,
+button:focus,
+button:focus-within {
+	outline: none;
+	border: none;
+	border-radius: 0.5rem;
+}

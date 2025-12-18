@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist_server/
+dev.database/
+dev.audiofiles/
+
+# Lock files
+bun.lock
+
+# IDE build info
+
+# Others
+.env
+.git/

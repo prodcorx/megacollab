@@ -1,0 +1,19 @@
+{
+	"files": [],
+	"references": [
+		{
+			"path": "./tsconfig.vite.json"
+		},
+		{
+			"path": "./tsconfig.vue.json"
+		},
+		{
+			"path": "./tsconfig.server.json"
+		}
+	],
+	"compilerOptions": {
+		"paths": {
+			"~/*": ["./shared/*"]
+		}
+	}
+}
