@@ -70,6 +70,7 @@ export const db = {
 	getClipsSafe,
 	deleteClipSafe,
 	updateClipSafe,
+	updateExistingUsernameSafe,
 }
 
 const audioFileCache = new Map<string, AudioFileBase>()
@@ -237,6 +238,31 @@ async function saveAudioFile(audioFile: AudioFileBase): Promise<AudioFileBase | 
 		const result = rows[0]!
 		audioFileCache.set(result.id, result)
 		return result
+	} catch (err) {
+		if (IN_DEV_MODE) print.db('error:', err)
+		return null
+	}
+}
+
+async function updateExistingUsernameSafe(
+	id: string,
+	username: string,
+): Promise<User['display_name'] | null> {
+	try {
+		const rows = await queryFn<Pick<User, 'display_name'>>(
+			`
+			UPDATE ${USERS_TABLE}
+			SET display_name = $2
+			WHERE id = $1
+			RETURNING display_name
+		`,
+			[id, username],
+		)
+
+		if (!rows.length) return null
+		const result = rows[0]!
+
+		return result.display_name
 	} catch (err) {
 		if (IN_DEV_MODE) print.db('error:', err)
 		return null

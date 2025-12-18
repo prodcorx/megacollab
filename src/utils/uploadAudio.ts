@@ -5,7 +5,7 @@ import { audioContext } from '@/audioEngine'
 import { cacheAudioFile, cacheBitmaps, computePeaks } from '@/utils/workerPool'
 import { activeUploads, audioBuffers, audiofiles, clips, user } from '@/state'
 import { useToast } from '@/composables/useToast'
-import { makeAudioFileHash, sanitizeFileName } from '~/utils'
+import { makeAudioFileHash, sanitizeLetterUnderscoreOnly } from '~/utils'
 
 const { addToast, removeToast } = useToast()
 

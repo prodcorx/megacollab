@@ -62,17 +62,13 @@ body {
 	display: grid;
 	justify-items: start;
 	grid-template-columns:
-		[full-width-start breakout-left-start] minmax(
-			var(--window-w-padding),
-			1fr
-		) [content-start breakout-right-start] min(
+		[full-width-start breakout-left-start] minmax(var(--window-w-padding), 1fr)
+		[content-start breakout-right-start] min(
 			100% - calc(var(--window-w-padding) * 2),
 			var(--window-w-max-width)
 		)
-		[content-end breakout-left-end] minmax(
-			var(--window-w-padding),
-			1fr
-		) [full-width-end breakout-right-end];
+		[content-end breakout-left-end] minmax(var(--window-w-padding), 1fr)
+		[full-width-end breakout-right-end];
 }
 
 .custom-grid > * {
@@ -211,6 +207,10 @@ button {
 	outline: none;
 }
 
+button:disabled {
+	cursor: default;
+}
+
 button:hover:not(:disabled) {
 	background-color: color-mix(in lch, var(--border-primary), white 15%);
 	box-shadow: inset 0px 0px 0px 1px color-mix(in lch, transparent, white 25%);
@@ -222,4 +222,29 @@ button:focus-within {
 	outline: none;
 	border: none;
 	border-radius: 0.5rem;
+}
+
+button.secondary {
+	background-color: transparent;
+	color: var(--text-color-secondary);
+}
+
+button.secondary:hover:not(:disabled) {
+	background-color: color-mix(in lch, var(--border-primary), white 0%);
+	box-shadow: inset 0px 0px 0px 1px color-mix(in lch, transparent, white 5%);
+	color: var(--text-color-primary);
+}
+
+.spin {
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+
+	to {
+		transform: rotate(360deg);
+	}
 }

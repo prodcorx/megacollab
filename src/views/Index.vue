@@ -28,15 +28,12 @@
 			</button>
 			<input type="range" v-model="pxPerBeat" :min="minPxPerBeat" :max="maxPxPerBeat" />
 			<div style="flex-grow: 1"></div>
-			<button ref="userButton" @click="isUserMenuOpen = !isUserMenuOpen">user</button>
-			<div v-if="!isUserMenuOpen" ref="userMenu" style="z-index: 100" :style="floatingStyles">
-				<div class="user-menu-container">
-					<div style="padding: 0 1rem">
-						<p class="bold">You</p>
-						<p>{{ user?.display_name }}</p>
-						<p>{{ user?.email }}</p>
-					</div>
-				</div>
+			<button ref="userButton" class="open-user-menu-btn" @click="isUserMenuOpen = !isUserMenuOpen">
+				<User :size="18" />
+			</button>
+
+			<div v-if="isUserMenuOpen" ref="userMenu" style="z-index: 100" :style="floatingStyles">
+				<UserMenu @on-updated="update()" />
 			</div>
 		</div>
 
@@ -123,7 +120,6 @@
 
 <script setup lang="ts">
 import Loading from '@/components/Loading.vue'
-import { useAuth } from '@clerk/vue'
 import { initializeSocket, socket } from '@/socket/socket'
 import {
 	computed,
@@ -144,6 +140,7 @@ import {
 	useMousePressed,
 	useResizeObserver,
 	useScroll,
+	onClickOutside,
 } from '@vueuse/core'
 import { isPlaying, pause, play, reset } from '@/audioEngine'
 import TimelineHeader from '@/components/TimelineHeader.vue'
@@ -161,10 +158,11 @@ import {
 import type { Clip } from '~/schema'
 import ClipInstance from '@/components/ClipInstance.vue'
 import AddTrack from '@/components/tracks/AddTrack.vue'
-import { Play, Pause, Square } from 'lucide-vue-next'
+import { Play, Pause, Square, User, LogOut, Settings2, UserPen } from 'lucide-vue-next'
 import { useFloating } from '@floating-ui/vue'
 import useClerkHelper from '@/composables/useClerkHelper'
 import { useRouter } from 'vue-router'
+import UserMenu from '@/components/UserMenu.vue'
 
 const router = useRouter()
 
@@ -175,6 +173,18 @@ const isUserMenuOpen = shallowRef(false)
 const { floatingStyles, update } = useFloating(userButtonEl, userMenuEl, {
 	placement: 'bottom-end',
 })
+
+useEventListener(window, 'resize', () => {
+	update()
+})
+
+onClickOutside(
+	userMenuEl,
+	() => {
+		isUserMenuOpen.value = false
+	},
+	{ ignore: [userButtonEl] },
+)
 
 /*
  * Globally make it so that buttons are not focusable.
@@ -571,13 +581,10 @@ watch(
 	border-bottom: 1px solid var(--border-primary);
 }
 
-.user-menu-container {
-	display: grid;
-	background-color: color-mix(in lch, var(--bg-color), white 10%);
-	border-radius: 0.5rem;
-	padding: 0.5rem 0;
-	margin-top: 0.5rem;
-	border: 1px solid var(--border-primary);
+.open-user-menu-btn {
+	border-radius: 50%;
+	aspect-ratio: 1/1;
+	padding: 0;
 }
 
 .outmost-container {

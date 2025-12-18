@@ -117,18 +117,6 @@ async function safeEmitWithAck<K extends ClientRequestKeys>(
 		const response = await socketInstance.emitWithAck(event, data)
 		const parsed = def.res.parse(response)
 
-		if (!parsed.success) {
-			console.error(parsed.error)
-			return {
-				success: false,
-				error: {
-					status: 'SERVER_ERROR',
-					message: 'INVALID_RESPONSE_FORMAT',
-					originalError: parsed.error,
-				},
-			} as ClientRequestResponse<K>
-		}
-
 		return parsed as ClientRequestResponse<K>
 	} catch (err) {
 		// socket.io errors / timeouts / netowrk issues
@@ -136,7 +124,7 @@ async function safeEmitWithAck<K extends ClientRequestKeys>(
 			success: false,
 			error: {
 				status: 'CLIENT_ERROR',
-				message: 'NETWORK_ERROR',
+				message: 'NETWORK_ERROR, please refresh!',
 				originalError: err,
 			},
 		} as ClientRequestResponse<K>

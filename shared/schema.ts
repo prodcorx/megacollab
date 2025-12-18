@@ -115,7 +115,7 @@ const BadRequestError = BaseError.extend({
 const ClientError = BaseError.extend({
 	status: z.literal('CLIENT_ERROR'),
 	originalError: z.any().optional(),
-	message: z.literal(['INVALID_INPUT', 'RESPONSE_PARSE']),
+	message: z.enum(['INVALID_INPUT', 'RESPONSE_PARSE']),
 })
 
 export const AppErrorSchema = z.discriminatedUnion('status', [

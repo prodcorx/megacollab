@@ -4,7 +4,7 @@ import { watch } from 'vue'
 const _template = 'megacollab_session' as const
 
 export default function useClerkHelper() {
-	const { isLoaded, userId, getToken } = useAuth()
+	const { isLoaded, userId, getToken, signOut } = useAuth()
 
 	function ensureLoaded(): Promise<void> {
 		return new Promise((res) => {
@@ -29,8 +29,14 @@ export default function useClerkHelper() {
 		return userId.value
 	}
 
+	async function signOutUser() {
+		await ensureLoaded()
+		await signOut.value({ redirectUrl: '/login' })
+	}
+
 	return {
 		getUserId,
 		getAuthToken,
+		signOutUser,
 	}
 }

@@ -1,5 +1,6 @@
-export function sanitizeFileName(name: string): string {
-	return name.replace(/[^a-zA-Z0-9._-]/g, '_')
+export function sanitizeLetterUnderscoreOnly(name: string, allowDot: boolean = true): string {
+	const pattern = allowDot ? /[^a-zA-Z0-9._]/g : /[^a-zA-Z0-9_]/g
+	return name.replace(pattern, '_')
 }
 
 /**
@@ -13,5 +14,7 @@ export function makeAudioFileHash(opts: {
 	file_name: string
 	duration: number
 }) {
-	return btoa(`${opts.creator_user_id}:${sanitizeFileName(opts.file_name)}:${opts.duration}`)
+	return btoa(
+		`${opts.creator_user_id}:${sanitizeLetterUnderscoreOnly(opts.file_name)}:${opts.duration}`,
+	)
 }

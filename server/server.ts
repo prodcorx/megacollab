@@ -21,7 +21,7 @@ import { nanoid } from 'nanoid'
 import { type AudioFileBase, type Clip, type ServerTrack } from '~/schema'
 import { EVENTS } from '~/events'
 import { audioMimeTypes, BACKEND_PORT } from '~/constants'
-import { sanitizeFileName } from '~/utils'
+import { sanitizeLetterUnderscoreOnly } from '~/utils'
 
 // const BACKEND_PORT = Bun.env['VITE_APP_DEV_SERVER_PORT'] ?? '5000'
 const CLERK_SECRET = Bun.env['CLERK_SECRET_KEY']
@@ -95,7 +95,7 @@ io.on('connection', async (socket) => {
 
 			const fileExt = extname(filename)
 			const file_id = nanoid()
-			const cleanFileName = sanitizeFileName(filename)
+			const cleanFileName = sanitizeLetterUnderscoreOnly(filename)
 
 			const folder = IN_DEV_MODE ? '' : `${PROD_FOLDER}/`
 
@@ -285,6 +285,59 @@ io.on('connection', async (socket) => {
 			})
 
 			socket.broadcast.emit('clip:update', clip)
+		})
+
+		socket.on('get:update:username', async (data, callback) => {
+			const { username } = data
+
+			const cleanUsername = sanitizeLetterUnderscoreOnly(username, false)
+
+			if (cleanUsername.length < 3) {
+				callback({
+					success: false,
+					error: {
+						status: 'BAD_REQUEST',
+						message: 'Username must be at least 3 characters long.',
+					},
+				})
+				return
+			}
+
+			if (cleanUsername.length > 32) {
+				callback({
+					success: false,
+					error: {
+						status: 'BAD_REQUEST',
+						message: 'Username must be at most 32 characters long.',
+					},
+				})
+				return
+			}
+
+			const updatedUsername = await db.updateExistingUsernameSafe(
+				user.id,
+				cleanUsername.toLowerCase(),
+			)
+
+			if (!updatedUsername) {
+				callback({
+					success: false,
+					error: {
+						status: 'SERVER_ERROR',
+						message: 'Oops, something unexpected went wrong. Please try again.',
+					},
+				})
+				return
+			}
+
+			callback({
+				success: true,
+				data: {
+					username: updatedUsername,
+				},
+			})
+
+			// todo: when implementing foreign cursors, broadcast this change aswell!
 		})
 
 		socket.emit('server:ready', {

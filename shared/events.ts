@@ -124,6 +124,14 @@ export const EVENTS = Object.freeze({
 			}),
 			res: clipSchema,
 		}),
+		'get:update:username': defineRequest({
+			req: z.object({
+				username: z.string(),
+			}),
+			res: z.object({
+				username: z.string(),
+			}),
+		}),
 	},
 } as const satisfies EventDefinitions)
 
