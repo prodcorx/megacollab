@@ -360,7 +360,7 @@ app.get('/*', async (c) => {
 const { websocket } = engine.handler()
 
 Bun.serve({
-	port: BACKEND_PORT,
+	port: Bun.env['PORT'] || BACKEND_PORT,
 	idleTimeout: 30,
 	fetch(req, server) {
 		const url = new URL(req.url)
