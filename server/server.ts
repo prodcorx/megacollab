@@ -373,9 +373,7 @@ io.on('connection', async (socket) => {
 		socket.on('get:undo', async (_, callback) => {
 			// todo: dont like the as any, maybe i can find a way to type this differently :D
 			// Cast to any required due to TS limitation with correlated generic types in Socket.IO emit
-			const result = await history.undo(user.id, (event, data) =>
-				io.emit(event as any, data),
-			)
+			const result = await history.undo(user.id, (event, data) => io.emit(event as any, data))
 
 			if (result.success) {
 				callback({ success: true, data: null })

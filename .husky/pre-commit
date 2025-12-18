@@ -1,6 +1,11 @@
 #!/bin/sh
-if [ -n "$CI" ]; then
-  exit 0
-fi
-bun run format
-bun run lint
+. "$(dirname "$0")/_/husky.sh"
+
+echo "Running pre-commit hooks (lint & format)..."
+
+# Use bun run to trigger the scripts defined in package.json
+bun run format || exit 1
+bun run lint || exit 1
+
+echo "Pre-commit checks passed!"
+

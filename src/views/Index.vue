@@ -3,13 +3,28 @@
 	<div v-else class="outmost-container">
 		<div class="controls" style="grid-area: controls">
 			<button @click="togglePlayState">
-				<Play v-if="!isPlaying" :size="16" :stroke-width="2" fill="currentColor"
-					style="color: var(--text-color-primary)" />
-				<Pause v-else :size="16" :stroke-width="2" fill="currentColor"
-					style="color: var(--active-playing-color)" />
+				<Play
+					v-if="!isPlaying"
+					:size="16"
+					:stroke-width="2"
+					fill="currentColor"
+					style="color: var(--text-color-primary)"
+				/>
+				<Pause
+					v-else
+					:size="16"
+					:stroke-width="2"
+					fill="currentColor"
+					style="color: var(--active-playing-color)"
+				/>
 			</button>
 			<button @click="reset">
-				<Square :size="16" :stroke-width="2" fill="currentColor" style="color: var(--text-color-primary)" />
+				<Square
+					:size="16"
+					:stroke-width="2"
+					fill="currentColor"
+					style="color: var(--text-color-primary)"
+				/>
 			</button>
 			<input type="range" v-model="pxPerBeat" :min="minPxPerBeat" :max="maxPxPerBeat" />
 			<div style="flex-grow: 1"></div>
@@ -30,51 +45,76 @@
 				<TimelineHeader />
 				<TrackInstance v-for="[id, track] in tracks" :key="id" :track="track" />
 
-				<ClipInstance v-if="ghostClip && ghostAudioFile && ghostDragState.track_id" :audiofile="ghostAudioFile"
-					:clip="ghostClip" :style="{
+				<ClipInstance
+					v-if="ghostClip && ghostAudioFile && ghostDragState.track_id"
+					:audiofile="ghostAudioFile"
+					:clip="ghostClip"
+					:style="{
 						position: 'absolute',
 						height: `${pxTrackHeight}px`,
 						top: `${ghostDragState.topPx}px`,
 						zIndex: 10,
 						pointerEvents: 'none',
 						opacity: 0.7,
-					}" />
+					}"
+				/>
 			</div>
 
 			<AddTrack @on-track-added="handleTrackAdded" style="grid-area: addtrack" />
 		</div>
 
 		<!-- custom scrollbar -->
-		<div class="custom-scrollbar scrollbar-x" style="grid-area: scollx" ref="customScrollbarX"
-			:class="{ 'is-dragging': isScrollbarXPressed }">
-			<div class="custom-thumb thumb-x" ref="thumbX"
-				:style="{ width: `${scrollIndicatorX.width}%`, left: `${scrollIndicatorX.left}%` }"></div>
+		<div
+			class="custom-scrollbar scrollbar-x"
+			style="grid-area: scollx"
+			ref="customScrollbarX"
+			:class="{ 'is-dragging': isScrollbarXPressed }"
+		>
+			<div
+				class="custom-thumb thumb-x"
+				ref="thumbX"
+				:style="{ width: `${scrollIndicatorX.width}%`, left: `${scrollIndicatorX.left}%` }"
+			></div>
 		</div>
 
-		<div class="custom-scrollbar scrollbar-y" style="grid-area: scrolly" ref="customScrollbarY"
-			:class="{ 'is-dragging': isScrollbarYPressed }">
-			<div class="custom-thumb thumb-y" ref="thumbY"
-				:style="{ height: `${scrollIndicatorY.height}%`, top: `${scrollIndicatorY.top}%` }"></div>
+		<div
+			class="custom-scrollbar scrollbar-y"
+			style="grid-area: scrolly"
+			ref="customScrollbarY"
+			:class="{ 'is-dragging': isScrollbarYPressed }"
+		>
+			<div
+				class="custom-thumb thumb-y"
+				ref="thumbY"
+				:style="{ height: `${scrollIndicatorY.height}%`, top: `${scrollIndicatorY.top}%` }"
+			></div>
 		</div>
 
 		<div style="grid-area: empty"></div>
 
 		<AudioFilePool style="grid-area: audiopool" />
 	</div>
-	<div v-if="dragFromPoolState && !ghostDragState.track_id && ghostAudioFile" :style="{
-		position: 'fixed',
-		zIndex: 100,
-		pointerEvents: 'none',
-		left: `${ghostDragState.globalX - dragFromPoolState.offsetPx}px`,
-		top: `${ghostDragState.globalY - 35}px`, // Center vertically approx
-		width: '160px',
-		height: '7rem',
-		opacity: 0.8,
-		boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-		borderRadius: '6px',
-		overflow: 'hidden',
-	}">
-		<ClipInstance :audiofile="ghostAudioFile" :custom-width-px="160" :style="{ width: '100%', height: '100%' }" />
+	<div
+		v-if="dragFromPoolState && !ghostDragState.track_id && ghostAudioFile"
+		:style="{
+			position: 'fixed',
+			zIndex: 100,
+			pointerEvents: 'none',
+			left: `${ghostDragState.globalX - dragFromPoolState.offsetPx}px`,
+			top: `${ghostDragState.globalY - 35}px`, // Center vertically approx
+			width: '160px',
+			height: '7rem',
+			opacity: 0.8,
+			boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+			borderRadius: '6px',
+			overflow: 'hidden',
+		}"
+	>
+		<ClipInstance
+			:audiofile="ghostAudioFile"
+			:custom-width-px="160"
+			:style="{ width: '100%', height: '100%' }"
+		/>
 	</div>
 </template>
 
@@ -92,7 +132,15 @@ import {
 	watchEffect,
 } from 'vue'
 import AudioFilePool from '@/components/AudioFilePool.vue'
-import { pxPerBeat, timelineWidth, tracks, maxPxPerBeat, user, controlKeyPressed, zKeyPressed } from '@/state'
+import {
+	pxPerBeat,
+	timelineWidth,
+	tracks,
+	maxPxPerBeat,
+	user,
+	controlKeyPressed,
+	zKeyPressed,
+} from '@/state'
 import TrackInstance from '@/components/tracks/TrackInstance.vue'
 import {
 	useEventListener,
@@ -127,7 +175,10 @@ import UserMenu from '@/components/UserMenu.vue'
 import { useToast } from '@/composables/useToast'
 const { addToast } = useToast()
 
-whenever(() => controlKeyPressed.value && zKeyPressed.value, () => tryUndo())
+whenever(
+	() => controlKeyPressed.value && zKeyPressed.value,
+	() => tryUndo(),
+)
 
 async function tryUndo() {
 	try {
@@ -138,7 +189,7 @@ async function tryUndo() {
 				message: res.error.message,
 				icon: 'warning',
 				priority: 'medium',
-				title: 'Undo Error'
+				title: 'Undo Error',
 			})
 		}
 	} catch (e) {
@@ -147,12 +198,10 @@ async function tryUndo() {
 			message: 'unexpected undo error, please try again.',
 			icon: 'warning',
 			priority: 'medium',
-			title: 'Undo Error'
+			title: 'Undo Error',
 		})
 	}
 }
-
-
 
 const router = useRouter()
 
