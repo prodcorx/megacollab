@@ -1,6 +1,15 @@
 #!/bin/sh
-if [ -n "$CI" ]; then
-  exit 0
-fi
-bun run format
-bun run lint
+. "$(dirname "$0")/_/husky.sh"
+
+echo "Running pre-commit hooks (lint & format)..."
+
+# Runs on all files for now.
+# as project grows I've been told this needs to change to lint-changed
+bun run format || exit 1
+bun run lint || exit 1
+
+# restage changed by formatter
+git add -u
+
+echo "Pre-commit checks passed!"
+
