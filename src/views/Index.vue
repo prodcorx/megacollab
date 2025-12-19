@@ -27,7 +27,6 @@
 				/>
 			</button>
 
-			<input type="range" v-model="pxPerBeat" :min="minPxPerBeat" :max="maxPxPerBeat" />
 			<div style="flex-grow: 1"></div>
 
 			<button ref="userButton" class="open-user-menu-btn" @click="isUserMenuOpen = !isUserMenuOpen">

@@ -51,7 +51,7 @@
 			<form @submit.prevent="confirmEditingUsername" style="padding: 0; margin: 0; display: grid">
 				<input
 					type="text"
-					class="txt mono small"
+					class="textInput txt mono small"
 					v-model="tempUsername"
 					id="username"
 					style="margin-bottom: 0.7rem"
@@ -83,7 +83,7 @@
 <script setup lang="ts">
 import { socket } from '@/socket/socket'
 import { user, controlKeyPressed, zKeyPressed } from '@/state'
-import { UserPen, Settings2, LogOut, LoaderCircle, Undo2, History } from 'lucide-vue-next'
+import { UserPen, Settings2, LogOut, LoaderCircle, Undo2, ChartNoAxesGantt } from 'lucide-vue-next'
 import { nextTick, shallowRef, useTemplateRef, watch } from 'vue'
 import { sanitizeLetterUnderscoreOnly } from '~/utils'
 import useClerkHelper from '@/composables/useClerkHelper'
@@ -218,7 +218,7 @@ async function startEditingUsername() {
 	box-shadow: none;
 }
 
-input {
+.textInput {
 	min-width: 0;
 	max-width: 100%;
 	height: 3rem;
@@ -228,13 +228,18 @@ input {
 	background-color: color-mix(in lch, var(--border-primary), black 0%);
 }
 
-input:disabled {
+.textInput:disabled {
 	color: var(--text-color-secondary);
 	background-color: color-mix(in lch, var(--border-primary), black 10%);
 }
 
-input:focus-visible:not(:disabled) {
+.textInput:focus-visible:not(:disabled) {
 	outline: none;
 	box-shadow: 0px 0px 0px 1px color-mix(in lch, var(--border-primary), white 30%);
+}
+
+.rangeInput {
+	min-width: 0;
+	max-width: 100%;
 }
 </style>
