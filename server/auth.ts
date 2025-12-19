@@ -3,9 +3,15 @@ import { db } from './database'
 import type { Socket } from 'socket.io'
 import type { User } from '~/schema'
 
-const COOKIE_NAME = 'MEGACOLLAB_SESSION_ID' as const
-const COOKIE_SIGNING_SECRET = Bun.env['COOKIE_SIGNING_SECRET']
 const IN_DEV_MODE = Bun.env['ENV'] === 'development'
+
+const COOKIE_NAME = 'MEGACOLLAB_SESSION_ID' as const
+const COOKIE_SIGNING_SECRET =
+	Bun.env['COOKIE_SIGNING_SECRET'] || (IN_DEV_MODE ? 'default_dev' : undefined)
+
+if (!COOKIE_SIGNING_SECRET) {
+	throw new Error('COOKIE_SIGNING_SECRET is not set')
+}
 
 export async function resolveConnectionUser(socket: Socket): Promise<User | null> {
 	const cookieHeader = socket.handshake.headers['cookie']
