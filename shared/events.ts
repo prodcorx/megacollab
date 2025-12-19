@@ -4,7 +4,6 @@ import {
 	clipSchema,
 	UserSchema,
 	AppErrorSchema,
-	clientSchema,
 	timelinePosSchema,
 	type AppError,
 	updateClipSchema,

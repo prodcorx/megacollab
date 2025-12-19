@@ -32,7 +32,12 @@ const TWITCH_CLIENT_ID = Bun.env['TWITCH_CLIENT_ID']
 const TWITCH_CLIENT_SECRET = Bun.env['TWITCH_CLIENT_SECRET']
 const TWITCH_REDIRECT_URI = Bun.env['TWITCH_REDIRECT_URI']
 const COOKIE_NAME = 'MEGACOLLAB_SESSION_ID' as const
-const COOKIE_SIGNING_SECRET = Bun.env['COOKIE_SIGNING_SECRET']
+const COOKIE_SIGNING_SECRET =
+	Bun.env['COOKIE_SIGNING_SECRET'] || IN_DEV_MODE ? 'default_dev' : undefined
+
+if (!COOKIE_SIGNING_SECRET) {
+	throw new Error('COOKIE_SIGNING_SECRET is not set')
+}
 
 await db.migrateAndSeedDb()
 
