@@ -17,7 +17,7 @@
 			</button>
 
 			<div v-if="isUserMenuOpen" ref="userMenu" style="z-index: 100" :style="floatingStyles">
-				<UserMenu @on-updated="update()" @on-undo="tryUndo()" />
+				<UserMenu @on-updated="update()" @on-undo="tryUndo()" @on-send-chat="sendChat()" />
 			</div>
 		</div>
 
@@ -158,6 +158,17 @@ import { useRouter } from 'vue-router'
 import UserMenu from '@/components/UserMenu.vue'
 import { useToast } from '@/composables/useToast'
 const { addToast } = useToast()
+
+// todo
+function sendChat() {
+	addToast({
+		type: 'notification',
+		message: 'not implemented yet :D',
+		icon: 'mail',
+		priority: 'high',
+		title: 'Chat',
+	})
+}
 
 whenever(
 	() => controlKeyPressed.value && zKeyPressed.value,

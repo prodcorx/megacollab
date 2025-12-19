@@ -26,6 +26,14 @@
 				</div>
 			</button>
 
+			<button class="default-button menu-btn" @click="emits('onSendChat')">
+				<MessageSquareShare class="dim" :size="14" :stroke-width="2" />
+				<p>Send Chat</p>
+				<div class="shortcut-container mono">
+					<p class="kbd" :class="{ active: tKeyPressed }">T</p>
+				</div>
+			</button>
+
 			<div
 				style="
 					border-top: 1px solid var(--border-primary);
@@ -38,7 +46,7 @@
 				<p>Settings</p>
 			</button>
 			<button class="default-button menu-btn" @click="signout">
-				<LogOut class="dim" :size="16" :stroke-width="2" />
+				<LogOut class="dim" :size="15" :stroke-width="2" />
 				<p>Sign Out</p>
 			</button>
 		</div>
@@ -87,8 +95,15 @@
 
 <script setup lang="ts">
 import { socket } from '@/socket/socket'
-import { user, controlKeyPressed, zKeyPressed } from '@/state'
-import { UserPen, Settings2, LogOut, LoaderCircle, Undo2, ChartNoAxesGantt } from 'lucide-vue-next'
+import { user, controlKeyPressed, zKeyPressed, tKeyPressed } from '@/state'
+import {
+	UserPen,
+	Settings2,
+	LogOut,
+	LoaderCircle,
+	Undo2,
+	MessageSquareShare,
+} from 'lucide-vue-next'
 import { nextTick, shallowRef, useTemplateRef, watch } from 'vue'
 import { sanitizeLetterUnderscoreOnly } from '~/utils'
 import useClerkHelper from '@/composables/useClerkHelper'
@@ -102,7 +117,11 @@ function signout() {
 }
 
 const isEditingUsername = shallowRef(false)
-const emits = defineEmits<{ (e: 'onUpdated'): void; (e: 'onUndo'): void }>()
+const emits = defineEmits<{
+	(e: 'onUpdated'): void
+	(e: 'onUndo'): void
+	(e: 'onSendChat'): void
+}>()
 
 async function cancelEditingUsername() {
 	if (isUpdating.value) return
@@ -216,6 +235,7 @@ async function startEditingUsername() {
 	background-color: transparent;
 	box-shadow: none;
 	justify-content: flex-start;
+	white-space: nowrap;
 }
 
 .menu-btn:hover {

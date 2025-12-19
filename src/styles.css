@@ -9,10 +9,10 @@
 	/* custom style configs */
 
 	--bg-color: #0e0e0e;
-	--text-color-primary: #ececec;
-	--text-color-secondary: #b8b8b8;
+	--text-color-primary: hsl(0 0% 92%);
+	--text-color-secondary: hsl(0 0% 69%);
 
-	--border-primary: hsl(0, 0%, 28%);
+	--border-primary: hsl(0 0% 28%);
 
 	--active-playing-color: hsl(125 100% 50% / 1);
 

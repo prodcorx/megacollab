@@ -44,6 +44,7 @@ export const { pixelRatio } = useDevicePixelRatio()
 export const altKeyPressed = shallowRef(false)
 export const controlKeyPressed = shallowRef(false)
 export const zKeyPressed = shallowRef(false)
+export const tKeyPressed = shallowRef(false)
 
 useEventListener(window, 'keydown', (event) => {
 	if (event.key === 'Alt') {
@@ -59,6 +60,11 @@ useEventListener(window, 'keydown', (event) => {
 
 	if (event.key === 'z') {
 		zKeyPressed.value = true
+		return
+	}
+
+	if (event.key === 't') {
+		tKeyPressed.value = true
 		return
 	}
 })
@@ -77,6 +83,11 @@ useEventListener(window, 'keyup', (event) => {
 
 	if (event.key === 'z') {
 		zKeyPressed.value = false
+		return
+	}
+
+	if (event.key === 't') {
+		tKeyPressed.value = false
 		return
 	}
 })
