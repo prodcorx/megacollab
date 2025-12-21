@@ -45,6 +45,19 @@ export const altKeyPressed = shallowRef(false)
 export const controlKeyPressed = shallowRef(false)
 export const zKeyPressed = shallowRef(false)
 export const tKeyPressed = shallowRef(false)
+export const rightMouseButtonPressed = shallowRef(false)
+
+useEventListener(window, 'pointerdown', (event) => {
+	if (event.button === 2) {
+		rightMouseButtonPressed.value = true
+	}
+})
+
+useEventListener(window, 'pointerup', (event) => {
+	if (event.button === 2) {
+		rightMouseButtonPressed.value = false
+	}
+})
 
 useEventListener(window, 'keydown', (event) => {
 	if (event.key === 'Alt') {

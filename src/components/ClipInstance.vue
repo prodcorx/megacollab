@@ -37,7 +37,14 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, shallowRef, useTemplateRef, type CSSProperties } from 'vue'
-import { TOTAL_BEATS, altKeyPressed, clips, dragFromPoolState, pixelRatio } from '@/state'
+import {
+	TOTAL_BEATS,
+	altKeyPressed,
+	clips,
+	dragFromPoolState,
+	pixelRatio,
+	rightMouseButtonPressed,
+} from '@/state'
 import type { Clip } from '~/schema'
 import { useElementBounding, useEventListener, watchThrottled, useElementHover } from '@vueuse/core'
 import { formatHex, interpolate, parse, wcagLuminance } from 'culori'
@@ -204,6 +211,7 @@ onMounted(() => {
 		})
 		return
 	}
+
 	if (!leftHandleEl.value || !rightHandleEl.value) return
 	if (!wrapperEl.value) return
 
@@ -212,6 +220,12 @@ onMounted(() => {
 		'pointerdown',
 		(event) => {
 			if (event.defaultPrevented) return
+
+			if (event.button === 2) {
+				return rip()
+			}
+
+			if (event.button !== 0) return
 
 			event.preventDefault()
 			event.stopPropagation()
@@ -306,6 +320,9 @@ onMounted(() => {
 				}
 
 				if (clip.id.startsWith('__temp__')) {
+					clip.start_beat = sesh.previewStartBeat
+					clip.end_beat = sesh.previewEndBeat
+					if (sesh.previewTrackId) clip.track_id = sesh.previewTrackId
 					dragSession.value = null
 					return
 				}
@@ -334,6 +351,11 @@ onMounted(() => {
 		leftHandleEl,
 		'pointerdown',
 		(event) => {
+			if (event.button === 2) {
+				return rip()
+			}
+
+			if (event.button !== 0) return
 			event.preventDefault()
 			event.stopPropagation()
 
@@ -418,6 +440,8 @@ onMounted(() => {
 				if (!clip) return
 
 				if (clip.id.startsWith('__temp__')) {
+					clip.start_beat = sesh.previewStartBeat
+					clip.offset_seconds = sesh.previewOffsetSec
 					dragSession.value = null
 					return
 				}
@@ -450,6 +474,11 @@ onMounted(() => {
 		rightHandleEl,
 		'pointerdown',
 		(event) => {
+			if (event.button === 2) {
+				return rip()
+			}
+
+			if (event.button !== 0) return
 			event.preventDefault()
 			event.stopPropagation()
 
@@ -514,6 +543,7 @@ onMounted(() => {
 				if (!clip) return
 
 				if (clip.id.startsWith('__temp__')) {
+					clip.end_beat = sesh.previewEndBeat
 					dragSession.value = null
 					return
 				}
@@ -537,6 +567,12 @@ onMounted(() => {
 		},
 		{ passive: false },
 	)
+
+	useEventListener(wrapperEl, 'pointerenter', () => {
+		if (rightMouseButtonPressed.value) {
+			rip()
+		}
+	})
 })
 
 const canvasStyles = computed((): CSSProperties => {

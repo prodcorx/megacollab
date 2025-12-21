@@ -111,6 +111,8 @@ export const EVENTS = Object.freeze({
 				end_beat: z.number(),
 				audio_file_id: z.string(),
 				track_id: z.string(),
+				offset_seconds: z.number().optional(),
+				gain_db: z.number().optional(),
 			}),
 			res: clipSchema,
 		}),

@@ -1,6 +1,12 @@
 <template>
 	<div v-bind="$attrs" class="track-instance">
-		<div ref="trackElement" class="track" :style="trackStyle" :data-track-id="props.track.id">
+		<div
+			ref="trackElement"
+			class="track"
+			:style="trackStyle"
+			:data-track-id="props.track.id"
+			@contextmenu.prevent
+		>
 			<ClipInstance
 				v-for="clip in trackClips"
 				:key="clip.id"
@@ -26,15 +32,7 @@
 import type { ServerTrack, Clip } from '~/schema'
 import ClipInstance from '@/components/ClipInstance.vue'
 import { computed, onMounted, onUnmounted, shallowRef, useTemplateRef } from 'vue'
-import {
-	clips,
-	pxPerBeat,
-	audiofiles,
-	pxTrackHeight,
-	TOTAL_BEATS,
-	altKeyPressed,
-	user,
-} from '@/state'
+import { clips, pxPerBeat, audiofiles, pxTrackHeight, TOTAL_BEATS, user } from '@/state'
 import { registerTrack, unregisterTrack } from '@/audioEngine'
 import { useDropZone, useEventListener, useElementBounding } from '@vueuse/core'
 import { audioMimeTypes } from '~/constants'
@@ -136,6 +134,8 @@ const { isOverDropZone } = useDropZone(trackEl, {
 					track_id: currentClip.track_id,
 					start_beat: currentClip.start_beat,
 					end_beat: currentClip.end_beat,
+					offset_seconds: currentClip.offset_seconds,
+					gain_db: currentClip.gain_db,
 				})
 
 				if (syncRes.success) {
@@ -191,7 +191,7 @@ useEventListener(trackEl, 'dragover', (e: DragEvent) => {
 	top: 0;
 	bottom: 0;
 	width: 10rem;
-	background: linear-gradient(to right, yellowgreen, transparent);
+	background: linear-gradient(to right, yellowgreen, transparent 80%);
 	z-index: 10;
 	pointer-events: none;
 }
