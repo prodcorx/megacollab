@@ -305,6 +305,11 @@ onMounted(() => {
 					changes.track_id = sesh.previewTrackId
 				}
 
+				if (clip.id.startsWith('__temp__')) {
+					dragSession.value = null
+					return
+				}
+
 				const res = await socket.emitWithAck('get:clip:update', {
 					id: clip.id,
 					changes,
@@ -412,6 +417,11 @@ onMounted(() => {
 				const clip = clips.get(props.clip.id)
 				if (!clip) return
 
+				if (clip.id.startsWith('__temp__')) {
+					dragSession.value = null
+					return
+				}
+
 				const res = await socket.emitWithAck('get:clip:update', {
 					id: clip.id,
 					changes: {
@@ -502,6 +512,11 @@ onMounted(() => {
 
 				const clip = clips.get(props.clip.id)
 				if (!clip) return
+
+				if (clip.id.startsWith('__temp__')) {
+					dragSession.value = null
+					return
+				}
 
 				const res = await socket.emitWithAck('get:clip:update', {
 					id: clip.id,

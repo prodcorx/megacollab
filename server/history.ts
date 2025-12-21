@@ -1,6 +1,7 @@
 import { db } from './database'
 import { type Clip } from '~/schema'
 import { print } from './utils'
+import { type ServerEmitKeys, type ServerEmitPayload } from '~/events'
 
 const IN_DEV_MODE = Bun.env['ENV'] === 'development'
 type ActionType = 'CLIP_CREATE' | 'CLIP_DELETE' | 'CLIP_UPDATE'
@@ -12,8 +13,6 @@ interface HistoryAction {
 	timestamp: number
 	userId: string
 }
-
-import { type ServerEmitKeys, type ServerEmitPayload } from '~/events'
 
 type BroadcastFn = <K extends ServerEmitKeys>(event: K, payload: ServerEmitPayload<K>) => void
 

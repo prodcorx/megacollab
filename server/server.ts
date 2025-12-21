@@ -32,7 +32,7 @@ import { DEV_FILE_FOLDER, MAX_UPLOAD_FILE_SIZE_BYTES } from './constants'
 import { store } from './store'
 import { history } from './history'
 import { nanoid } from 'nanoid'
-import { type AudioFileBase, type Clip, type ServerTrack } from '~/schema'
+import { type AudioFileBase, type ClientTrack, type Clip, type ServerTrack } from '~/schema'
 import { EVENTS } from '~/events'
 import { audioMimeTypes, BACKEND_PORT } from '~/constants'
 import { sanitizeLetterUnderscoreOnly } from '~/utils'
@@ -176,16 +176,21 @@ io.on('connection', async (socket) => {
 				gain_db: 0,
 			}
 
-			const track = await db.createTrackSafe(newTrack)
+			let track: ClientTrack
 
-			if (!track) {
+			try {
+				track = await db.createTrack(newTrack)
+			} catch (err) {
+				const error = err instanceof Error ? err.message : 'Unknown error'
+
 				callback({
 					success: false,
 					error: {
 						status: 'SERVER_ERROR',
-						message: 'Oops, something unexpected went wrong. Please try reconnecting.',
+						message: `Database error: ${error}`,
 					},
 				})
+
 				return
 			}
 

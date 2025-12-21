@@ -3,7 +3,7 @@
 		<div class="inner-container">
 			<div class="content">
 				<p class="bold big caps">no auth</p>
-				<p class="small dim" style="margin-bottom: 2rem">in developer mode</p>
+				<p class="small dim" style="margin-bottom: 2rem">In development mode</p>
 				<button class="default-button" @click="$router.push('/')">
 					<ArrowLeft :size="16" />
 					<p>Go to home</p>
@@ -86,13 +86,17 @@
 
 <script setup lang="ts">
 import { Info, Lock, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-vue-next'
-import { shallowRef, computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { shallowRef, computed, ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import Twitch from '@/components/icons/Twitch.vue'
 import Discord from '@/components/icons/Discord.vue'
 
 const route = useRoute()
+const router = useRouter()
+
 const localError = ref<string | null>(null)
+const queryError = ref<string | null>(null)
+const successMessage = ref<string | null>(null)
 const errorKey = ref(0)
 
 function handleError(msg: string) {
@@ -102,19 +106,31 @@ function handleError(msg: string) {
 
 const errorMessage = computed(() => {
 	if (localError.value) return localError.value
+	return queryError.value
+})
 
+onMounted(() => {
+	const success = route.query.success
 	const error = route.query.error
 	const description = route.query.error_description
 
-	if (!error) return null
+	if (success) {
+		successMessage.value = (Array.isArray(success) ? success[0] : success) as string
+	}
 
-	const descStr = Array.isArray(description) ? description[0] : description
-	return descStr || 'An unknown error occurred during login. Please try again.'
-})
+	if (error) {
+		const descStr = Array.isArray(description) ? description[0] : description
+		queryError.value =
+			(descStr as string) || 'An unknown error occurred during login. Please try again.'
+	}
 
-const successMessage = computed(() => {
-	const success = route.query.success
-	return Array.isArray(success) ? success[0] : success
+	if (success || error) {
+		const query = { ...route.query }
+		delete query.success
+		delete query.error
+		delete query.error_description
+		router.replace({ query })
+	}
 })
 
 async function signInWithTwitch() {

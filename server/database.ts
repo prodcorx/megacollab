@@ -15,6 +15,9 @@ import { nanoid } from 'nanoid'
 import { DEV_DATABASE_FOLDER } from './constants'
 import z from 'zod'
 
+// todo: update all the hanlders to not return safely when they
+// dont need to and espeically when providing a user error feedback would make sense!
+
 const SessionSchema = z.object({
 	session_id: z.string(),
 	user_id: z.string(),
@@ -72,7 +75,7 @@ export const db = {
 	migrateAndSeedDb,
 	getAudioFilesSafe,
 	getAudioFileSafe,
-	createTrackSafe,
+	createTrack,
 	getTracksSafe,
 	createClipSafe,
 	getClipsSafe,
@@ -111,14 +114,11 @@ async function getAudioFileSafe(id: string): Promise<AudioFileBase | null> {
 	}
 }
 
-async function createTrackSafe(
-	track: Omit<ServerTrack, 'order_index'>,
-): Promise<ClientTrack | null> {
-	try {
-		const { id, creator_user_id, title, belongs_to_user_id, gain_db } = track
+async function createTrack(track: Omit<ServerTrack, 'order_index'>): Promise<ClientTrack> {
+	const { id, creator_user_id, title, belongs_to_user_id, gain_db } = track
 
-		const rows = await queryFn<ClientTrack>(
-			`
+	const rows = await queryFn<ClientTrack>(
+		`
 			WITH inserted AS (
 				INSERT INTO ${TRACKS_TABLE} (id, creator_user_id, title, belongs_to_user_id, gain_db, order_index) 
 				VALUES ($1, $2, $3, $4, $5, (SELECT COALESCE(MAX(order_index), 0) + 1 FROM ${TRACKS_TABLE}))
@@ -131,17 +131,11 @@ async function createTrackSafe(
 			LEFT JOIN ${USERS_TABLE} AS users
 				ON inserted.belongs_to_user_id = users.id
 		`,
-			[id, creator_user_id, title, belongs_to_user_id, gain_db],
-		)
+		[id, creator_user_id, title, belongs_to_user_id, gain_db],
+	)
 
-		if (!rows.length) return null
-		const result = rows[0]!
-
-		return result
-	} catch (err) {
-		if (IN_DEV_MODE) print.db('error:', err)
-		return null
-	}
+	if (!rows.length) throw new Error('Failed to create track')
+	return rows[0]!
 }
 
 async function getTracksSafe(): Promise<ClientTrack[]> {

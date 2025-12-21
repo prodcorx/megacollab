@@ -10,12 +10,19 @@ import { makeAudioFileHash, sanitizeLetterUnderscoreOnly } from '~/utils'
 const { addToast, removeToast } = useToast()
 
 type AudioCreateResult =
-	| { success: false; reason?: string; id?: never; duration?: never }
-	| { success: true; id: string; duration: number; reason?: never }
+	| { success: false; reason?: string; id?: never; duration?: never; uploadPromise?: never }
+	| {
+			success: true
+			id: string
+			duration: number
+			reason?: never
+			uploadPromise: Promise<void>
+	  }
 
 export async function optimisticAudioCreateUpload(
 	file: File,
 	onProgress?: (percent: number) => void,
+	allowReuse = false,
 ): Promise<AudioCreateResult> {
 	if (!file) return { success: false, reason: 'No file provided' }
 	if (socket.readyState.value !== 'READY') return { success: false, reason: 'Socket not ready' }
@@ -27,7 +34,9 @@ export async function optimisticAudioCreateUpload(
 	}
 
 	try {
+		console.time('filebuffer')
 		const arrayBufPromise = file.arrayBuffer()
+		console.timeEnd('filebuffer')
 
 		const uploadRequestPromise = socket.emitWithAck('get:upload:url', {
 			filename: file.name,
@@ -43,23 +52,42 @@ export async function optimisticAudioCreateUpload(
 
 		const { url, file_id, color, file_name, file_key } = res.data
 
+		console.time('decodeAudioData')
 		// always copy buffer because decodeAudioData detaches it i think :P
 		const audioCtxBuffer = await audioContext.decodeAudioData(arrayBuf.slice(0))
+		console.timeEnd('decodeAudioData')
+
 		const duration = audioCtxBuffer.duration
 		const sampleRate = audioCtxBuffer.sampleRate
 
 		const fileHash = makeAudioFileHash({ duration, file_name, creator_user_id: user.value.id })
 
-		if ([...audiofiles.values()].some((f) => f.hash === fileHash)) {
-			return { success: false, reason: 'File already exists' }
+		const existing = [...audiofiles.values()].find((f) => f.hash === fileHash)
+		if (existing) {
+			if (allowReuse) {
+				return {
+					success: true,
+					id: existing.id,
+					duration: existing.duration,
+					uploadPromise: Promise.resolve(),
+				}
+			} else {
+				return { success: false, reason: 'File already exists' }
+			}
 		}
 
+		console.time('computePeaks')
 		const waveforms = await computePeaks(file_id, audioCtxBuffer, color)
+		console.timeEnd('computePeaks')
 
 		// these should be fire and forget and non blocking on main thread ideally
 		// should be doable with workers and the new opfs cache
+		console.time('cacheAudioFile')
 		cacheAudioFile(file_id, file_id, arrayBuf).catch((err) => console.error(err))
+		console.timeEnd('cacheAudioFile')
+		console.time('cacheBitmaps')
 		cacheBitmaps(file_id, file_id, waveforms).catch((err) => console.error(err))
+		console.timeEnd('cacheBitmaps')
 
 		audioBuffers.set(file_id, audioCtxBuffer)
 
@@ -80,6 +108,7 @@ export async function optimisticAudioCreateUpload(
 		audiofiles.set(file_id, optimisticAudioFile)
 
 		async function backgroundUpload() {
+			console.time('uploadFile')
 			try {
 				await uploadFile(url, file, onProgress)
 
@@ -97,6 +126,7 @@ export async function optimisticAudioCreateUpload(
 			} catch (err) {
 				handleUploadFailure(file_id, err)
 			}
+			console.timeEnd('uploadFile')
 		}
 
 		// we dont await so upload happens in the background
@@ -106,7 +136,7 @@ export async function optimisticAudioCreateUpload(
 		activeUploads.add(uploadPromise)
 		uploadPromise.finally(() => activeUploads.delete(uploadPromise))
 
-		return { success: true, id: file_id, duration }
+		return { success: true, id: file_id, duration, uploadPromise }
 	} catch (err) {
 		console.error('File upload failed:', err)
 		return { success: false, reason: 'Failed to upload file' }

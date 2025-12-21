@@ -1,6 +1,6 @@
 import type { ImageBitmapLODs } from '@/types'
 import type { WorkerMessage, WorkerResponse } from '@/utils/workerPool'
-// import { AUDIO_POOL_WIDTH } from '@/state'
+import { converter, parse } from 'culori'
 const SAMPLES_PER_PEAK = [256, 512, 1024, 2048, 4096] as const // Block sizes for peak generation / samples per peak
 
 let opfsRoot: FileSystemDirectoryHandle | null = null
@@ -13,7 +13,16 @@ async function getOpfsRoot() {
 }
 
 // bump on implementation change
-const BITMAP_VERISON = 1 as const
+const BITMAP_VERISON = 2 as const
+
+const toRgb = converter('rgb')
+
+function hexToRgb(hex: string): [number, number, number] {
+	const parsed = parse(hex)
+	if (!parsed) return [255, 255, 255]
+	const rgb = toRgb(parsed)
+	return [Math.round(rgb.r * 255), Math.round(rgb.g * 255), Math.round(rgb.b * 255)]
+}
 
 self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
 	const msg = e.data
@@ -104,6 +113,8 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
 				let completed = 0
 				sendProgress(0)
 
+				const [r, g, b] = hexToRgb(color)
+
 				for (const res of resolutions) {
 					const peaks = peakLayers.lods[res]
 					if (!peaks) continue
@@ -116,18 +127,27 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
 
 					if (!ctx) throw new Error('Could not get 2d context')
 
-					ctx.clearRect(0, 0, width, fixedHeight)
-					ctx.fillStyle = color
-					ctx.beginPath()
+					const imageData = ctx.createImageData(width, fixedHeight)
+					const data = imageData.data
 					const midY = fixedHeight / 2
 
-					for (let i = 0; i < peaks.length; i++) {
+					for (let i = 0; i < width; i++) {
 						const val = peaks[i] ?? 0
 						const barHeight = Math.max(1, val * fixedHeight)
-						const y = midY - barHeight / 2
-						ctx.rect(i, y, 1, barHeight)
+						const yStart = Math.floor(midY - barHeight / 2)
+						const yEnd = Math.floor(midY + barHeight / 2)
+
+						for (let y = yStart; y < yEnd; y++) {
+							if (y < 0 || y >= fixedHeight) continue
+							const index = (y * width + i) * 4
+							data[index] = r
+							data[index + 1] = g
+							data[index + 2] = b
+							data[index + 3] = 255
+						}
 					}
-					ctx.fill()
+
+					ctx.putImageData(imageData, 0, 0)
 
 					const bitmap = offscreen.transferToImageBitmap()
 					waveforms[res] = bitmap

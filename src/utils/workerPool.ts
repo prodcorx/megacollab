@@ -30,7 +30,7 @@ export class AudioWorkerPool {
 
 	constructor(workerFactory: () => Worker) {
 		this.workerFactory = workerFactory
-		const totalCores = navigator.hardwareConcurrency || 4
+		const totalCores = Math.min(11, navigator.hardwareConcurrency || 4)
 		this.maxWorkers = Math.max(1, totalCores - 1)
 		print('log', this.maxWorkers, 'workers')
 		this.initWorkers()

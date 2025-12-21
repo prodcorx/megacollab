@@ -8,6 +8,7 @@ import { nanoid } from 'nanoid'
 import { randomSafeHexColor } from './utils'
 
 const IN_DEV_MODE = Bun.env['ENV'] === 'development'
+const ALLOW_AUTH_IN_DEV_MODE = false
 
 export const COOKIE_NAME = 'MEGACOLLAB_SESSION_ID' as const
 
@@ -105,7 +106,7 @@ export class OAuthStateManager {
 export const oAuthStates = new OAuthStateManager()
 
 export async function getSignOut(c: Context) {
-	if (IN_DEV_MODE) {
+	if (IN_DEV_MODE && !ALLOW_AUTH_IN_DEV_MODE) {
 		return c.json({ error: 'Dev mode not supported' }, 400)
 	}
 
@@ -135,7 +136,7 @@ export async function getSignOut(c: Context) {
 }
 
 export function getTwitchOAuthUrl(c: Context) {
-	if (IN_DEV_MODE) {
+	if (IN_DEV_MODE && !ALLOW_AUTH_IN_DEV_MODE) {
 		return c.json({ error: 'Dev mode not supported' }, 400)
 	}
 
@@ -155,7 +156,7 @@ export function getTwitchOAuthUrl(c: Context) {
 }
 
 export function getDiscordOAuthUrl(c: Context) {
-	if (IN_DEV_MODE) {
+	if (IN_DEV_MODE && !ALLOW_AUTH_IN_DEV_MODE) {
 		return c.json({ error: 'Dev mode not supported' }, 400)
 	}
 
@@ -176,7 +177,7 @@ export function getDiscordOAuthUrl(c: Context) {
 }
 
 export async function handleTwitchOAuthCallback(c: Context) {
-	if (IN_DEV_MODE) {
+	if (IN_DEV_MODE && !ALLOW_AUTH_IN_DEV_MODE) {
 		return c.json({ error: 'Dev mode not supported' }, 400)
 	}
 
@@ -335,7 +336,7 @@ export async function handleTwitchOAuthCallback(c: Context) {
 }
 
 export async function handleDiscordOAuthCallback(c: Context) {
-	if (IN_DEV_MODE) {
+	if (IN_DEV_MODE && !ALLOW_AUTH_IN_DEV_MODE) {
 		return c.text('Dev mode not supported', 400)
 	}
 
