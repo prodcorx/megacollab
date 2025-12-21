@@ -34,9 +34,7 @@ export async function optimisticAudioCreateUpload(
 	}
 
 	try {
-		console.time('filebuffer')
 		const arrayBufPromise = file.arrayBuffer()
-		console.timeEnd('filebuffer')
 
 		const uploadRequestPromise = socket.emitWithAck('get:upload:url', {
 			filename: file.name,
@@ -52,10 +50,8 @@ export async function optimisticAudioCreateUpload(
 
 		const { url, file_id, color, file_name, file_key } = res.data
 
-		console.time('decodeAudioData')
 		// always copy buffer because decodeAudioData detaches it i think :P
 		const audioCtxBuffer = await audioContext.decodeAudioData(arrayBuf.slice(0))
-		console.timeEnd('decodeAudioData')
 
 		const duration = audioCtxBuffer.duration
 		const sampleRate = audioCtxBuffer.sampleRate
@@ -76,18 +72,12 @@ export async function optimisticAudioCreateUpload(
 			}
 		}
 
-		console.time('computePeaks')
 		const waveforms = await computePeaks(file_id, audioCtxBuffer, color)
-		console.timeEnd('computePeaks')
 
 		// these should be fire and forget and non blocking on main thread ideally
 		// should be doable with workers and the new opfs cache
-		console.time('cacheAudioFile')
 		cacheAudioFile(file_id, file_id, arrayBuf).catch((err) => console.error(err))
-		console.timeEnd('cacheAudioFile')
-		console.time('cacheBitmaps')
 		cacheBitmaps(file_id, file_id, waveforms).catch((err) => console.error(err))
-		console.timeEnd('cacheBitmaps')
 
 		audioBuffers.set(file_id, audioCtxBuffer)
 
@@ -108,7 +98,6 @@ export async function optimisticAudioCreateUpload(
 		audiofiles.set(file_id, optimisticAudioFile)
 
 		async function backgroundUpload() {
-			console.time('uploadFile')
 			try {
 				await uploadFile(url, file, onProgress)
 
@@ -126,7 +115,6 @@ export async function optimisticAudioCreateUpload(
 			} catch (err) {
 				handleUploadFailure(file_id, err)
 			}
-			console.timeEnd('uploadFile')
 		}
 
 		// we dont await so upload happens in the background

@@ -97,9 +97,7 @@ const { isOverDropZone } = useDropZone(trackEl, {
 		startBeat = Math.max(0, startBeat)
 		startBeat = Math.min(startBeat, TOTAL_BEATS - 1)
 
-		console.time('optimisticAudioCreateUpload')
 		const res = await optimisticAudioCreateUpload(file, undefined, true)
-		console.timeEnd('optimisticAudioCreateUpload')
 
 		if (!res.success) {
 			return console.warn(res.reason)
