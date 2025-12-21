@@ -17,6 +17,9 @@ export const audioBuffers = reactive(new Map<string, AudioBuffer>())
 
 export const debugEntries = ref<Map<string, DebugEntry>>(new Map())
 export const toasts = ref<Toast[]>([])
+export const globalProgresses = reactive(
+	new Map<string, { progress: number; expiresAt: number; label?: string }>(),
+)
 
 export const activeUploads = new Set<Promise<any>>()
 
@@ -66,6 +69,19 @@ watchEffect(() => {
 		document.body.classList.remove('right-mouse-down')
 	}
 })
+
+useIntervalFn(
+	() => {
+		const now = Date.now()
+		for (const [id, data] of globalProgresses) {
+			if (now > data.expiresAt) {
+				globalProgresses.delete(id)
+			}
+		}
+	},
+	1000,
+	{ immediate: true },
+)
 
 useEventListener(window, 'keydown', (event) => {
 	if (event.key === 'Alt') {

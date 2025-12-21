@@ -24,6 +24,7 @@ export async function optimisticAudioCreateUpload(
 	onProgress?: (percent: number) => void,
 	allowReuse = false,
 ): Promise<AudioCreateResult> {
+	onProgress?.(1)
 	if (!file) return { success: false, reason: 'No file provided' }
 	if (socket.readyState.value !== 'READY') return { success: false, reason: 'Socket not ready' }
 	if (!user.value)
@@ -48,6 +49,8 @@ export async function optimisticAudioCreateUpload(
 			return { success: false, reason: res.error.message }
 		}
 
+		onProgress?.(5)
+
 		const { url, file_id, color, file_name, file_key } = res.data
 
 		// always copy buffer because decodeAudioData detaches it i think :P
@@ -56,11 +59,13 @@ export async function optimisticAudioCreateUpload(
 		const duration = audioCtxBuffer.duration
 		const sampleRate = audioCtxBuffer.sampleRate
 
-		const fileHash = makeAudioFileHash({ duration, file_name, creator_user_id: user.value.id })
+		onProgress?.(15)
 
+		const fileHash = makeAudioFileHash({ duration, file_name, creator_user_id: user.value.id })
 		const existing = [...audiofiles.values()].find((f) => f.hash === fileHash)
 		if (existing) {
 			if (allowReuse) {
+				onProgress?.(100)
 				return {
 					success: true,
 					id: existing.id,
@@ -72,7 +77,12 @@ export async function optimisticAudioCreateUpload(
 			}
 		}
 
-		const waveforms = await computePeaks(file_id, audioCtxBuffer, color)
+		// Spend 15% -> 30% on peak computation
+		const waveforms = await computePeaks(file_id, audioCtxBuffer, color, (p) => {
+			onProgress?.(15 + p * 0.15)
+		})
+
+		onProgress?.(30)
 
 		// these should be fire and forget and non blocking on main thread ideally
 		// should be doable with workers and the new opfs cache
@@ -99,7 +109,10 @@ export async function optimisticAudioCreateUpload(
 
 		async function backgroundUpload() {
 			try {
-				await uploadFile(url, file, onProgress)
+				// Upload phase: 30% -> 95%
+				await uploadFile(url, file, (p) => {
+					onProgress?.(30 + p * 0.65)
+				})
 
 				const res = await socket.emitWithAck('get:upload:finalize', {
 					duration,
@@ -109,6 +122,7 @@ export async function optimisticAudioCreateUpload(
 				if (!res.success) {
 					return handleUploadFailure(file_id, res.error)
 				} else {
+					onProgress?.(100)
 				}
 
 				// nothing to do, server will broadcast audiofile:create event

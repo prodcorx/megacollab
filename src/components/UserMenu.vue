@@ -105,6 +105,8 @@ import {
 	LoaderCircle,
 	Undo2,
 	MessageSquareShare,
+	ZoomIn,
+	ZoomOut,
 } from 'lucide-vue-next'
 import { nextTick, shallowRef, useTemplateRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -249,8 +251,47 @@ async function startEditingUsername() {
 	box-shadow: none;
 }
 
-.rangeInput {
-	min-width: 0;
-	max-width: 100%;
+.compound-input-wrap {
+	background-color: transparent;
+	height: auto;
+	padding-top: 0.4rem;
+	padding-bottom: 0.4rem;
+	cursor: default;
+	width: 100%;
+}
+
+.compound-input-wrap:hover {
+	background-color: transparent;
+}
+
+.range-input-wrap {
+	height: 3rem;
+	background-color: color-mix(in lch, transparent, white 15%);
+	border-radius: 0.5rem;
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0 0.1rem;
+}
+
+.range-input-button {
+	background-color: transparent;
+	border: none;
+	cursor: pointer;
+	border-radius: inherit;
+	height: 100%;
+	aspect-ratio: 1/1;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-color-secondary);
+
+	transition: color 0.1s;
+}
+
+.range-input-button:hover {
+	color: var(--text-color-primary);
 }
 </style>

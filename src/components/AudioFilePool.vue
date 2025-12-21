@@ -70,7 +70,7 @@ import { File } from 'lucide-vue-next'
 import { audioMimeTypes } from '~/constants'
 import { optimisticAudioCreateUpload } from '@/utils/uploadAudio'
 import { useToast } from '@/composables/useToast'
-
+import { useGlobalProgress } from '@/composables/useGlobalProgress'
 const { addToast } = useToast()
 
 const dropZoneEl = useTemplateRef('dropZoneWrapper')
@@ -84,7 +84,20 @@ const { files, isOverDropZone } = useDropZone(dropZoneEl, {
 
 		const res = await Promise.all(
 			files.map(async (file) => {
-				const { success, duration, id, reason } = await optimisticAudioCreateUpload(file)
+				const progress = useGlobalProgress()
+				const { success, duration, id, reason, uploadPromise } = await optimisticAudioCreateUpload(
+					file,
+					(p) => {
+						progress.update(p)
+					},
+				)
+
+				if (uploadPromise) {
+					uploadPromise.finally(() => progress.done())
+				} else {
+					progress.done()
+				}
+
 				return { success, duration, id, reason, file_name: file.name }
 			}),
 		)

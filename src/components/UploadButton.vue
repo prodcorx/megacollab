@@ -21,6 +21,7 @@ import { optimisticAudioCreateUpload } from '@/utils/uploadAudio'
 import { computed, ref, shallowRef, useTemplateRef, type CSSProperties } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { FolderOpen, LoaderCircle } from 'lucide-vue-next'
+import { useGlobalProgress } from '@/composables/useGlobalProgress'
 
 function openFileDialog() {
 	if (isUploading.value) return
@@ -68,13 +69,19 @@ onChange(async (files) => {
 	const res = await Promise.all(
 		filesArray.map(async (file) => {
 			progressMap.value.set(file.name, 0)
-
-			const { success, duration, id, reason } = await optimisticAudioCreateUpload(
+			const progressGlob = useGlobalProgress()
+			const { success, duration, id, reason, uploadPromise } = await optimisticAudioCreateUpload(
 				file,
 				(progress) => {
 					progressMap.value.set(file.name, progress)
+					progressGlob.update(progress)
 				},
 			)
+			if (uploadPromise) {
+				uploadPromise.finally(() => progressGlob.done())
+			} else {
+				progressGlob.done()
+			}
 
 			return { success, duration, id, reason, file_name: file.name }
 		}),

@@ -40,6 +40,7 @@ import { optimisticAudioCreateUpload } from '@/utils/uploadAudio'
 import { px_to_beats, quantize_beats, sec_to_beats, beats_to_px } from '@/utils/mathUtils'
 import { socket } from '@/socket/socket'
 import { nanoid } from 'nanoid'
+import { useGlobalProgress } from '@/composables/useGlobalProgress'
 
 const props = defineProps<{
 	track: ServerTrack
@@ -95,7 +96,20 @@ const { isOverDropZone } = useDropZone(trackEl, {
 		startBeat = Math.max(0, startBeat)
 		startBeat = Math.min(startBeat, TOTAL_BEATS - 1)
 
-		const res = await optimisticAudioCreateUpload(file, undefined, true)
+		const progressGlob = useGlobalProgress()
+		const res = await optimisticAudioCreateUpload(
+			file,
+			(p) => {
+				progressGlob.update(p)
+			},
+			true,
+		)
+
+		if (res.success && res.uploadPromise) {
+			res.uploadPromise.finally(() => progressGlob.done())
+		} else {
+			progressGlob.done()
+		}
 
 		if (!res.success) {
 			return console.warn(res.reason)

@@ -199,13 +199,3 @@ type SocketEventHandler<K extends ServerEmitKeys> = {
 	event: K
 	handler: (data: ServerEmitPayload<K>) => void | Promise<void>
 }
-
-type InitSocketParams =
-	| {
-			inDevMode: true
-			auth_token?: never
-	  }
-	| {
-			inDevMode?: never
-			auth_token: string
-	  }

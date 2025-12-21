@@ -76,6 +76,8 @@
 
 		<div style="grid-area: empty"></div>
 
+		<GlobalLoadingIndicator style="grid-area: globalloader" />
+
 		<AudioFilePool style="grid-area: audiopool" />
 	</div>
 	<div
@@ -155,6 +157,7 @@ import { offset, useFloating } from '@floating-ui/vue'
 import { useRouter } from 'vue-router'
 import UserMenu from '@/components/UserMenu.vue'
 import { useToast } from '@/composables/useToast'
+import GlobalLoadingIndicator from '@/components/GlobalLoadingIndicator.vue'
 const { addToast } = useToast()
 
 // todo
@@ -612,10 +615,10 @@ watch(
 
 	display: grid;
 
-	grid-template-rows: auto auto auto auto 1fr auto;
+	grid-template-rows: auto auto auto auto 1fr auto auto;
 	grid-template-columns: minmax(0, 1fr) auto;
 
-	grid-template-areas: 'controls controls' 'scollx scolldud' 'timeline scrolly' 'addtrack scrolly' 'empty scrolly' 'audiopool audiopool';
+	grid-template-areas: 'controls controls' 'scollx scolldud' 'timeline scrolly' 'addtrack scrolly' 'empty scrolly' 'globalloader scrolly' 'audiopool audiopool';
 }
 
 .test-btn {

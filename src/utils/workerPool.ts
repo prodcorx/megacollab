@@ -30,7 +30,7 @@ export class AudioWorkerPool {
 
 	constructor(workerFactory: () => Worker) {
 		this.workerFactory = workerFactory
-		const totalCores = Math.min(11, navigator.hardwareConcurrency || 4)
+		const totalCores = Math.min(17, navigator.hardwareConcurrency || 4)
 		this.maxWorkers = Math.max(1, totalCores - 1)
 		print('log', this.maxWorkers, 'workers')
 		this.initWorkers()
@@ -189,6 +189,7 @@ export async function computePeaks(
 	id: string,
 	audioBuffer: AudioBuffer,
 	color?: string,
+	onProgress?: (progress: number) => void,
 ): Promise<ImageBitmapLODs> {
 	if (typeof SharedArrayBuffer === 'undefined') {
 		throw new Error('SharedArrayBuffer is not supported')
@@ -199,14 +200,17 @@ export async function computePeaks(
 	const sabView = new Float32Array(sab)
 	sabView.set(channelData)
 
-	const res = await audioPool.execute({
-		type: 'COMPUTE_PEAKS',
-		id,
-		audioData: sab,
-		duration: audioBuffer.duration,
-		color,
-		audioPoolWidth: AUDIO_POOL_WIDTH,
-	})
+	const res = await audioPool.execute(
+		{
+			type: 'COMPUTE_PEAKS',
+			id,
+			audioData: sab,
+			duration: audioBuffer.duration,
+			color,
+			audioPoolWidth: AUDIO_POOL_WIDTH,
+		},
+		{ onProgress },
+	)
 
 	if (res.type === 'COMPUTE_PEAKS') return res.waveforms
 	throw new Error('Unexpected worker response type: ' + res.type)

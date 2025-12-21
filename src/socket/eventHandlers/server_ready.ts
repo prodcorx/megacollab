@@ -1,4 +1,4 @@
-import { _socketReady, defineSocketHandler, socket } from '@/socket/socket'
+import { _socketReady, defineSocketHandler } from '@/socket/socket'
 import { audiofiles, client, clips, tracks, user } from '@/state'
 import { ingestNewAudioFileMetadata } from '@/utils/preProcessAudio'
 import { pruneAudioCache } from '@/utils/workerPool'
