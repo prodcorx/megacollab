@@ -523,6 +523,8 @@ app.get('/api/auth/twitch/callback', handleTwitchOAuthCallback)
 const DIST_DIR = join(import.meta.dir, '..', 'dist')
 app.use('/*', serveStatic({ root: DIST_DIR }))
 
+console.log('DIST_DIR:', DIST_DIR, 'import.meta.dir:', import.meta.dir)
+
 // - It's not an API route
 // - It's not a physical file (like /assets/logo.png)
 // So we serve the index.html and let Vue Router handle the URL.

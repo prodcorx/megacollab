@@ -28,5 +28,6 @@
 			"~/*": ["./shared/*"]
 		}
 	},
-	"include": ["./server/**/*", "./shared/**/*"]
+	"include": ["./server/**/*", "./shared/**/*"],
+	"exclude": ["src"]
 }
