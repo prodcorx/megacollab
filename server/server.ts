@@ -36,7 +36,7 @@ import { type AudioFileBase, type ClientTrack, type Clip, type ServerTrack } fro
 import { EVENTS } from '~/events'
 import { audioMimeTypes, BACKEND_PORT } from '~/constants'
 import { sanitizeLetterUnderscoreOnly } from '~/utils'
-import { RateLimiter } from './ratelimiter'
+import { RateLimiter, getSafeIp } from './ratelimiter'
 
 const IN_DEV_MODE = Bun.env['ENV'] === 'development'
 
@@ -50,10 +50,10 @@ io.bind(engine)
 
 io.on('connection', async (socket) => {
 	try {
-		if (socket.request.headers['x-mega-is-rate-limited'] === 'true') {
+		if (socket.request.headers['x-mega-internal-is-rate-limited'] === 'true') {
 			socket.emit('server:error', {
 				status: 'RATE_LIMIT_EXCEEDED',
-				tryAgainAtMs: Number(socket.request.headers['x-mega-rate-limit-reset']),
+				tryAgainAtMs: Number(socket.request.headers['x-mega-internal-rate-limit-reset']),
 				message: 'Rate limit exceeded',
 			})
 			socket.disconnect()
@@ -503,7 +503,7 @@ app.use(
 
 // rate limit api auth & upload requests
 app.use('/api/*', async (c, next) => {
-	const ip = c.req.header('x-forwarded-for') || 'unknown_fallback'
+	const ip = getSafeIp(c.req.raw.headers, 'unknown_fallback')
 
 	const [allowed, remaining, resetTimeMs] = apiRateLimiter.allow(ip)
 
@@ -568,13 +568,13 @@ Bun.serve({
 		const url = new URL(req.url)
 
 		if (url.pathname === '/ws/') {
-			const ip =
-				server.requestIP(req)?.address || req.headers.get('x-forwarded-for') || 'unknown_fallback'
+			const fallbackIp = server.requestIP(req)?.address || 'unknown_fallback'
+			const ip = getSafeIp(req.headers, fallbackIp)
 			const [allowed, remaining, resetTimeMs] = wsHandshakeRateLimiter.allow(ip)
 
-			req.headers.set('x-mega-rate-limit-remaining', remaining.toString())
-			req.headers.set('x-mega-is-rate-limited', allowed ? 'false' : 'true')
-			req.headers.set('x-mega-rate-limit-reset', resetTimeMs.toString())
+			req.headers.set('x-mega-internal-rate-limit-remaining', remaining.toString())
+			req.headers.set('x-mega-internal-is-rate-limited', allowed ? 'false' : 'true')
+			req.headers.set('x-mega-internal-rate-limit-reset', resetTimeMs.toString())
 
 			return engine.handleRequest(req, server)
 		}

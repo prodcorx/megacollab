@@ -1,24 +1,29 @@
 <template>
 	<div class="no-select timeline-header-wrap">
 		<div class="timeline-header" ref="timelineHeaderRef">
-			<div class="timeline-header" ref="timelineHeaderRef">
-				<div class="timeline-markers">
-					<div
-						v-for="i in TOTAL_BEATS"
-						:key="i"
-						class="timeline-segment"
-						:style="{ width: `${pxPerBeat}px` }"
-					>
-						<p v-if="i % 4 === 1" class="small dim mono timeline-marker">
-							{{ i }}
-						</p>
-					</div>
+			<div class="timeline-markers">
+				<div
+					v-for="i in TOTAL_BEATS"
+					:key="i"
+					class="timeline-segment"
+					:style="{ width: `${pxPerBeat}px` }"
+				>
+					<p v-if="i % 4 === 1" class="small dim mono timeline-marker">
+						{{ i }}
+					</p>
 				</div>
 			</div>
 		</div>
 	</div>
-	<div v-if="!isPressed" class="resting-playhead" :style="restingPlayheadStyle" />
-	<div class="playhead" :style="playheadStyle" :class="{ 'is-playing': isPlaying }" />
+
+	<!-- Scrolling Lines (z-index 30) -->
+	<div class="playhead-line" :style="playheadStyle" :class="{ 'is-playing': isPlaying }" />
+
+	<!-- Sticky Playhead Heads (z-index 35) -->
+	<div class="timeline-heads-wrap">
+		<div v-if="!isPressed" class="resting-playhead-head" :style="restingPlayheadStyle" />
+		<div class="playhead-head" :style="playheadHeadStyle" :class="{ 'is-playing': isPlaying }" />
+	</div>
 </template>
 
 <script setup lang="ts">
@@ -41,6 +46,12 @@ const { pressed: isPressed } = useMousePressed({ target: timelineHeaderEl })
 const playheadStyle = computed((): CSSProperties => {
 	return {
 		transform: `translateX(${playHeadPosPx.value}px)`,
+	}
+})
+
+const playheadHeadStyle = computed((): CSSProperties => {
+	return {
+		transform: `translateX(${playHeadPosPx.value}px) translateX(-50%)`,
 	}
 })
 
@@ -90,9 +101,19 @@ watchThrottled(
 	width: 100%;
 	position: sticky;
 	top: 0;
-	z-index: 20;
+	z-index: 30;
 	background-color: var(--bg-color);
 	border-bottom: 1px solid var(--border-primary);
+}
+
+.timeline-heads-wrap {
+	height: 2rem;
+	width: 100%;
+	position: sticky;
+	top: 0;
+	z-index: 35;
+	margin-top: -2rem;
+	pointer-events: none;
 }
 
 .timeline-header {
@@ -118,7 +139,7 @@ watchThrottled(
 	background-color: color-mix(in lch, var(--bg-color), white 8%);
 }
 
-.playhead {
+.playhead-line {
 	position: absolute;
 	top: 0px;
 	bottom: 1px;
@@ -131,11 +152,11 @@ watchThrottled(
 	transition: transform 15ms linear;
 }
 
-.playhead.is-playing {
+.playhead-line.is-playing {
 	background-color: var(--active-playing-color);
 }
 
-.playhead.is-playing::before {
+.playhead-line.is-playing::before {
 	content: '';
 	position: absolute;
 	top: 0;
@@ -150,21 +171,24 @@ watchThrottled(
 	);
 }
 
-.playhead::after {
-	content: '';
+.playhead-head {
 	position: absolute;
 	top: 0;
 	--_size: 1.8rem;
 	height: calc((var(--_size) * 0.6) + 1px);
 	width: calc(var(--_size) + 1px);
 	background-color: var(--active-playing-color);
-	transform: translate(-50%);
-	left: 50%;
+	/* Center alignment done via transform in JS */
+	left: 0;
+	z-index: 32;
+	pointer-events: none;
+	will-change: transform;
+	transition: transform 15ms linear;
 
 	clip-path: polygon(0 0, 100% 0, 50% 100%);
 }
 
-.resting-playhead {
+.resting-playhead-head {
 	position: absolute;
 	top: -0px;
 	--_size: 1.8rem;
@@ -174,7 +198,7 @@ watchThrottled(
 	background-color: color-mix(in lch, var(--active-playing-color), black 50%);
 	/* orange for contrast */
 	pointer-events: none;
-	z-index: 30;
+	z-index: 31;
 	opacity: 1;
 
 	clip-path: polygon(0 0, 100% 0, 50% 100%);

@@ -62,3 +62,26 @@ export class RateLimiter {
 		this.limits.clear()
 	}
 }
+
+/**
+ * Extracts the trustworthy IP address from the request headers, specifically handling
+ * the `x-forwarded-for` header for environments like Heroku.
+ *
+ * Use this when the server is behind a proxy that appends the client IP to the end of the list.
+ */
+export function getSafeIp(headers: Headers, fallback: string): string {
+	const forwardedFor = headers.get('x-forwarded-for')
+
+	if (!forwardedFor) {
+		return fallback
+	}
+
+	// The standard format is "client, proxy1, proxy2"
+	// On Heroku, the last IP is the one that connected to the Heroku router (the real client or their proxy)
+	const ips = forwardedFor.split(',').map((ip) => ip.trim())
+
+	// We take the last one as it's the one appended by the trusted proxy (Heroku)
+	const lastIp = ips[ips.length - 1]
+
+	return lastIp || fallback
+}
