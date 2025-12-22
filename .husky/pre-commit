@@ -1,9 +1,7 @@
 echo "Running pre-commit checks"
 
-# Runs on all files for now.
-# as project grows I've been told this needs to change to lint-changed
+bun run test || { echo "Tests failed"; exit 1; }
 bun run typecheck || { echo "Typecheck failed"; exit 1; }
-# Use bunx to execute the lint-staged binary directly, similar to npx
 bunx lint-staged || { echo "Lint-staged failed"; exit 1; }
 
 echo "Pre-commit checks passed"
