@@ -27,7 +27,13 @@
 			<TrackControls />
 			<div class="all-tracks-wrapper" ref="tracksWrapper" :style="{ width: `${timelineWidth}px` }">
 				<TimelineHeader />
-				<TrackInstance v-for="[id, track] in sortedTracks" :key="id" :track="track" />
+				<TrackInstance
+					v-for="[id, track] in sortedTracks"
+					:key="id"
+					:track="track"
+					:scroll-x="scrollX"
+					:timeline-window-width="timelineContainerClientWidth"
+				/>
 
 				<ClipInstance
 					v-if="ghostClip && ghostAudioFile && ghostDragState.track_id"
@@ -136,6 +142,7 @@ import {
 	useScroll,
 	onClickOutside,
 	whenever,
+	useElementSize,
 } from '@vueuse/core'
 import { isPlaying, pause, play, reset } from '@/audioEngine'
 import TimelineHeader from '@/components/TimelineHeader.vue'
@@ -253,6 +260,7 @@ function togglePlayState() {
 
 const timelineContainerEl = useTemplateRef('timelineContainer')
 const { x: scrollX, y: scrollY } = useScroll(timelineContainerEl)
+const { width: timelineContainerClientWidth } = useElementSize(timelineContainerEl)
 
 async function handleTrackAdded() {
 	await nextTick() // awaiting repaint
