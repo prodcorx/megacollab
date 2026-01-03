@@ -54,7 +54,7 @@ export const migrations: Migration[] = [
                     belongs_to_user_id TEXT REFERENCES ${USERS_TABLE}(id) ON DELETE CASCADE ON UPDATE CASCADE,
                     title TEXT,
                     order_index INTEGER NOT NULL,
-                    gain_db DOUBLE PRECISION NOT NULL,
+                    gain DOUBLE PRECISION NOT NULL,
                     created_at TIMESTAMPTZ DEFAULT NOW()
                 )`)
 
@@ -67,31 +67,7 @@ export const migrations: Migration[] = [
                     start_beat DOUBLE PRECISION NOT NULL,
                     end_beat DOUBLE PRECISION NOT NULL,
                     offset_seconds DOUBLE PRECISION NOT NULL,
-                    gain_db DOUBLE PRECISION NOT NULL,
-                    created_at TIMESTAMPTZ DEFAULT NOW()
-                )`)
-
-			await queryFn(`
-                CREATE TABLE IF NOT EXISTS ${TRACKS_TABLE} (
-                    id TEXT PRIMARY KEY,
-                    creator_user_id TEXT NOT NULL REFERENCES ${USERS_TABLE}(id) ON DELETE CASCADE ON UPDATE CASCADE,
-                    belongs_to_user_id TEXT REFERENCES ${USERS_TABLE}(id) ON DELETE CASCADE ON UPDATE CASCADE,
-                    title TEXT,
-                    order_index INTEGER NOT NULL,
-                    gain_db DOUBLE PRECISION NOT NULL,
-                    created_at TIMESTAMPTZ DEFAULT NOW()
-                )`)
-
-			await queryFn(`
-                CREATE TABLE IF NOT EXISTS ${CLIPS_TABLE} (
-                    id TEXT PRIMARY KEY,
-                    track_id TEXT NOT NULL REFERENCES ${TRACKS_TABLE}(id) ON DELETE CASCADE ON UPDATE CASCADE,
-                    audio_file_id TEXT NOT NULL REFERENCES ${AUDIOFILES_TABLE}(id) ON DELETE CASCADE ON UPDATE CASCADE,
-                    creator_user_id TEXT NOT NULL REFERENCES ${USERS_TABLE}(id) ON DELETE CASCADE ON UPDATE CASCADE,
-                    start_beat DOUBLE PRECISION NOT NULL,
-                    end_beat DOUBLE PRECISION NOT NULL,
-                    offset_seconds DOUBLE PRECISION NOT NULL,
-                    gain_db DOUBLE PRECISION NOT NULL,
+                    gain DOUBLE PRECISION NOT NULL,
                     created_at TIMESTAMPTZ DEFAULT NOW()
                 )`)
 
@@ -101,14 +77,6 @@ export const migrations: Migration[] = [
                     user_id TEXT NOT NULL REFERENCES ${USERS_TABLE}(id) ON DELETE CASCADE ON UPDATE CASCADE,
                     created_at TIMESTAMPTZ DEFAULT NOW()
                 )`)
-		},
-	},
-	{
-		id: 2,
-		name: 'gain_db_to_gain',
-		func: async (queryFn) => {
-			await queryFn(`ALTER TABLE ${TRACKS_TABLE} RENAME COLUMN gain_db TO gain`)
-			await queryFn(`ALTER TABLE ${CLIPS_TABLE} RENAME COLUMN gain_db TO gain`)
 		},
 	},
 ]

@@ -44,6 +44,8 @@ import { useGlobalProgress } from '@/composables/useGlobalProgress'
 
 const props = defineProps<{
 	track: ServerTrack
+	scrollX: number
+	timelineWindowWidth: number
 }>()
 
 onMounted(() => registerTrack(props.track.id, props.track.gain))

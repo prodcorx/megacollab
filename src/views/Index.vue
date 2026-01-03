@@ -10,10 +10,28 @@
 				<Square :size="16" style="color: var(--text-color-primary)" />
 			</button>
 
+			<p class="small mono controls-panel-wrap">
+				{{ minutesNseconds }}<br />
+				{{ barNumber }}:{{ beatNumber }}
+			</p>
+
+			<p class="mono controls-panel-wrap">{{ bpm }} BPM</p>
+
+			<p class="controls-panel-wrap" :style="{ color: socketReadyState !== 'READY' ? 'red' : '' }">
+				<Radio v-if="socketReadyState === 'READY'" :size="18" style="margin-right: 0.6rem" />
+				<WifiOff v-else :size="17" style="margin-right: 0.6rem" />
+				{{ socketReadyState === 'READY' ? 'Connected' : 'Offline' }}
+			</p>
+
+			<p class="controls-panel-wrap">
+				<ArrowUpDown :size="16" style="margin-right: 0.5rem" />
+				{{ 25 }}ms
+			</p>
+
 			<div style="flex-grow: 1"></div>
 
 			<button ref="userButton" class="controls-panel-btn" @click="isUserMenuOpen = !isUserMenuOpen">
-				<User :size="18" />
+				<CustomMenu :isMenuOpen="isUserMenuOpen" />
 			</button>
 
 			<div v-if="isUserMenuOpen" ref="userMenu" style="z-index: 100" :style="floatingStyles">
@@ -27,7 +45,13 @@
 			<TrackControls />
 			<div class="all-tracks-wrapper" ref="tracksWrapper" :style="{ width: `${timelineWidth}px` }">
 				<TimelineHeader />
-				<TrackInstance v-for="[id, track] in sortedTracks" :key="id" :track="track" />
+				<TrackInstance
+					v-for="[id, track] in sortedTracks"
+					:key="id"
+					:track="track"
+					:scroll-x="scrollX"
+					:timeline-window-width="timelineContainerClientWidth"
+				/>
 
 				<ClipInstance
 					v-if="ghostClip && ghostAudioFile && ghostDragState.track_id"
@@ -87,7 +111,7 @@
 			zIndex: 100,
 			pointerEvents: 'none',
 			left: `${ghostDragState.globalX - dragFromPoolState.offsetPx}px`,
-			top: `${ghostDragState.globalY - 35}px`, // Center vertically approx
+			top: `${ghostDragState.globalY - 35}px`, // center vertically approx
 			width: '160px',
 			height: '7rem',
 			opacity: 0.8,
@@ -106,7 +130,7 @@
 
 <script setup lang="ts">
 import Loading from '@/components/Loading.vue'
-import { initializeSocket, socket } from '@/socket/socket'
+import { _socketReady, initializeSocket, socket, socketReadyState } from '@/socket/socket'
 import {
 	computed,
 	nextTick,
@@ -126,6 +150,7 @@ import {
 	controlKeyPressed,
 	zKeyPressed,
 	activeUploads,
+	bpm,
 } from '@/state'
 import TrackInstance from '@/components/tracks/TrackInstance.vue'
 import {
@@ -136,8 +161,16 @@ import {
 	useScroll,
 	onClickOutside,
 	whenever,
+	useElementSize,
 } from '@vueuse/core'
-import { isPlaying, pause, play, reset } from '@/audioEngine'
+import {
+	currentPlayTimeBeats,
+	currentPlayTimeSeconds,
+	isPlaying,
+	pause,
+	play,
+	reset,
+} from '@/audioEngine'
 import TimelineHeader from '@/components/TimelineHeader.vue'
 import TrackControls from '@/components/tracks/TrackControls.vue'
 import { px_to_beats, quantize_beats, sec_to_beats } from '@/utils/mathUtils'
@@ -153,14 +186,49 @@ import {
 import type { Clip } from '~/schema'
 import ClipInstance from '@/components/ClipInstance.vue'
 import AddTrack from '@/components/tracks/AddTrack.vue'
-import { Play, Pause, Square, User, Undo2 } from 'lucide-vue-next'
+import {
+	Play,
+	Pause,
+	Square,
+	User,
+	Undo2,
+	Radio,
+	WifiOff,
+	ArrowUpDown,
+	Menu,
+} from 'lucide-vue-next'
 import { offset, useFloating } from '@floating-ui/vue'
 import { useRouter } from 'vue-router'
 import UserMenu from '@/components/UserMenu.vue'
 import { useToast } from '@/composables/useToast'
 import GlobalLoadingIndicator from '@/components/GlobalLoadingIndicator.vue'
 import { nanoid } from 'nanoid'
+import CustomMenu from '@/components/icons/CustomMenu.vue'
 const { addToast } = useToast()
+
+const minutesNseconds = computed(() => {
+	const sec = currentPlayTimeSeconds.value
+
+	const minutes = Math.floor(sec / 60)
+	const seconds = Math.floor(sec % 60)
+
+	// 2‑digit ms
+	const centiseconds = Math.floor((sec % 1) * 100)
+
+	const mm = minutes.toString().padStart(2, '0')
+	const ss = seconds.toString().padStart(2, '0')
+	const cs = centiseconds.toString().padStart(2, '0')
+
+	return `${mm}:${ss}:${cs}`
+})
+
+const barNumber = computed(() => {
+	return Math.floor(currentPlayTimeBeats.value / 4) + 1
+})
+
+const beatNumber = computed(() => {
+	return Math.floor(currentPlayTimeBeats.value % 4) + 1
+})
 
 const sortedTracks = computed(() => {
 	return [...tracks.entries()].sort((a, b) => a[1].order_index - b[1].order_index)
@@ -253,6 +321,7 @@ function togglePlayState() {
 
 const timelineContainerEl = useTemplateRef('timelineContainer')
 const { x: scrollX, y: scrollY } = useScroll(timelineContainerEl)
+const { width: timelineContainerClientWidth } = useElementSize(timelineContainerEl)
 
 async function handleTrackAdded() {
 	await nextTick() // awaiting repaint
@@ -640,6 +709,15 @@ watch(
 	display: flex;
 	padding: 0;
 	border-bottom: 1px solid var(--border-primary);
+}
+
+.controls-panel-wrap {
+	display: inline-flex;
+	padding: 0 1.6rem;
+	align-items: center;
+	align-content: center;
+	line-height: 1.06em;
+	border-right: 1px solid var(--border-primary);
 }
 
 .open-user-menu-btn {
