@@ -1,5 +1,5 @@
 <template>
-	<div v-bind="$attrs" class="track-instance">
+	<div v-bind="$attrs" class="track-instance" :style="{ height: `${pxTrackHeight}px` }">
 		<div
 			ref="trackElement"
 			class="track"
@@ -185,7 +185,6 @@ useEventListener(trackEl, 'dragover', (e: DragEvent) => {
 	position: relative;
 	display: grid;
 	grid-template-columns: 1fr;
-	height: 7rem;
 }
 
 .track-instance:last-child {

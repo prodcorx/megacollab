@@ -34,13 +34,42 @@ import { history } from './history'
 import { nanoid } from 'nanoid'
 import { type AudioFileBase, type ClientTrack, type Clip, type ServerTrack } from '~/schema'
 import { EVENTS } from '~/events'
-import { audioMimeTypes, BACKEND_PORT, DEFAULT_GAIN } from '~/constants'
+import { audioMimeTypes, BACKEND_PORT, CURSOR_INACTIVE_TIMEOUT_MS, DEFAULT_GAIN } from '~/constants'
 import { sanitizeLetterUnderscoreOnly } from '~/utils'
 import { RateLimiter, getSafeIp } from './ratelimiter'
+import type { TimelinePos } from '~/schema'
 
 const IN_DEV_MODE = Bun.env['ENV'] === 'development'
 
 await db.migrateAndSeedDb()
+
+// CURSOR TRACKING
+const userPositions = new Map<
+	string,
+	{ pos: TimelinePos; display_name: string; updatedAt: number }
+>()
+
+// send positions to clients every 100ms
+let lastUpdateHadData = false
+setInterval(() => {
+	const now = Date.now()
+	const payload: Record<string, { pos: TimelinePos; display_name: string; updatedAt: number }> = {}
+
+	for (const [userId, data] of userPositions.entries()) {
+		if (now - data.updatedAt > CURSOR_INACTIVE_TIMEOUT_MS) {
+			userPositions.delete(userId)
+			continue
+		}
+		payload[userId] = data
+	}
+
+	const hasData = Object.keys(payload).length > 0
+
+	if (!hasData && !lastUpdateHadData) return
+
+	io.emit('clients:pos_updates', payload)
+	lastUpdateHadData = hasData
+}, 100)
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents, {}, SocketData>()
@@ -72,6 +101,24 @@ io.on('connection', async (socket) => {
 		}
 
 		validateIncomingEvents(socket)
+
+		socket.on('disconnect', () => {
+			if (userPositions.has(user.id)) {
+				userPositions.delete(user.id)
+			}
+		})
+
+		socket.on('emit:updatepos', (pos) => {
+			userPositions.set(user.id, {
+				pos,
+				display_name: user.display_name,
+				updatedAt: Date.now(),
+			})
+		})
+
+		socket.on('emit:clearpos', () => {
+			userPositions.delete(user.id)
+		})
 
 		socket.on('get:ping', (_data, callback) => {
 			callback({ success: true, data: null })
@@ -415,6 +462,8 @@ io.on('connection', async (socket) => {
 					username: updatedUsername,
 				},
 			})
+
+			user.display_name = updatedUsername
 
 			// todo: when implementing foreign cursors, broadcast this change aswell!
 		})

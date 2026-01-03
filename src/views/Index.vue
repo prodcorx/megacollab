@@ -31,7 +31,7 @@
 			<div style="flex-grow: 1"></div>
 
 			<button ref="userButton" class="controls-panel-btn" @click="isUserMenuOpen = !isUserMenuOpen">
-				<CustomMenu :isMenuOpen="isUserMenuOpen" />
+				<CustomMenuIcon :isMenuOpen="isUserMenuOpen" />
 			</button>
 
 			<div v-if="isUserMenuOpen" ref="userMenu" style="z-index: 100" :style="floatingStyles">
@@ -66,6 +66,8 @@
 						opacity: 0.7,
 					}"
 				/>
+
+				<UserCursors />
 			</div>
 
 			<AddTrack @on-track-added="handleTrackAdded" style="grid-area: addtrack" />
@@ -162,6 +164,7 @@ import {
 	onClickOutside,
 	whenever,
 	useElementSize,
+	useIntervalFn,
 } from '@vueuse/core'
 import {
 	currentPlayTimeBeats,
@@ -171,6 +174,7 @@ import {
 	play,
 	reset,
 } from '@/audioEngine'
+import UserCursors from '@/components/UserCursors.vue'
 import TimelineHeader from '@/components/TimelineHeader.vue'
 import TrackControls from '@/components/tracks/TrackControls.vue'
 import { px_to_beats, quantize_beats, sec_to_beats } from '@/utils/mathUtils'
@@ -203,7 +207,7 @@ import UserMenu from '@/components/UserMenu.vue'
 import { useToast } from '@/composables/useToast'
 import GlobalLoadingIndicator from '@/components/GlobalLoadingIndicator.vue'
 import { nanoid } from 'nanoid'
-import CustomMenu from '@/components/icons/CustomMenu.vue'
+import CustomMenuIcon from '@/components/CustomMenuIcon.vue'
 const { addToast } = useToast()
 
 const minutesNseconds = computed(() => {
@@ -346,6 +350,72 @@ function updateDims() {
 
 const tracksWrapperEl = useTemplateRef('tracksWrapper')
 useResizeObserver(tracksWrapperEl, updateDims)
+
+// Cursor Logic
+// todo: should be moved to trackinstance for better performance bc it will allow direct access to .track which here i have to get through the target.closest....
+const latestCursorPayload = shallowRef<{
+	beat: number
+	trackId: string
+	trackYOffset: number
+} | null>(null)
+const lastEmittedPayloadHash = ref('')
+
+function handleCursorMove(event: PointerEvent) {
+	if (!tracksWrapperEl.value) return
+
+	const target = event.target as HTMLElement | null
+	if (!target) return
+
+	const trackEl = target.closest('.track') as HTMLElement | null
+	if (!trackEl) {
+		latestCursorPayload.value = null
+		return
+	}
+
+	const trackId = trackEl.dataset.trackId
+	if (!trackId) {
+		latestCursorPayload.value = null
+		return
+	}
+
+	const rect = trackEl.getBoundingClientRect()
+	const yInTrack = event.clientY - rect.top
+	const trackYOffset = Math.max(0, Math.min(1, yInTrack / rect.height))
+
+	// For beat calculation, we need X relative to the wrapper
+	const wrapperRect = tracksWrapperEl.value.getBoundingClientRect()
+	const xInWrapper = event.clientX - wrapperRect.left
+
+	const beat = px_to_beats(xInWrapper)
+
+	latestCursorPayload.value = { beat, trackId, trackYOffset }
+}
+
+function handleCursorLeave() {
+	latestCursorPayload.value = null
+}
+
+// Register listeners on the wrapper
+useEventListener(tracksWrapperEl, 'pointermove', handleCursorMove)
+useEventListener(tracksWrapperEl, 'pointerleave', handleCursorLeave)
+
+useIntervalFn(() => {
+	if (!latestCursorPayload.value) {
+		if (lastEmittedPayloadHash.value !== 'cleared') {
+			socket.emit('emit:clearpos', null)
+			lastEmittedPayloadHash.value = 'cleared'
+		}
+		return
+	}
+
+	const payload = latestCursorPayload.value
+	const hash = `${payload.beat.toFixed(4)}_${payload.trackId}_${payload.trackYOffset.toFixed(4)}`
+
+	if (hash !== lastEmittedPayloadHash.value) {
+		socket.emit('emit:updatepos', payload)
+		lastEmittedPayloadHash.value = hash
+	}
+}, 100)
 
 const scrollbarXEl = useTemplateRef('customScrollbarX')
 const thumbXEl = useTemplateRef('thumbX')

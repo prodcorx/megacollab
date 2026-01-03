@@ -1,5 +1,12 @@
 import { computed, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
-import { type Client, type ClientTrack, type Clip, type ServerTrack, type User } from '~/schema'
+import {
+	type Client,
+	type ClientTrack,
+	type Clip,
+	type ServerTrack,
+	type TimelinePos,
+	type User,
+} from '~/schema'
 import { useDebug, type DebugEntry } from '@/composables/useDebug'
 import type { Toast } from '@/composables/useToast'
 import { useDevicePixelRatio, useEventListener, useIntervalFn, useTimeoutFn } from '@vueuse/core'
@@ -21,7 +28,11 @@ export const globalProgresses = reactive(
 	new Map<string, { progress: number; expiresAt: number; label?: string }>(),
 )
 
-export const activeUploads = new Map<string, Promise<any>>()
+export const otherUserPositions = reactive<
+	Map<string, { pos: TimelinePos; display_name: string; lastUpdated: number }>
+>(new Map())
+
+export const activeUploads = new Map<string, Promise<void>>()
 
 export const dragFromPoolState = shallowRef<{
 	audioFileId: string

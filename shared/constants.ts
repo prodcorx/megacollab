@@ -1,12 +1,8 @@
-export const audioMimeTypes: readonly string[] = [
-	'audio/mpeg',
-	'audio/wav',
-	'audio/vnd.wave',
-	'audio/wave',
-	'audio/x-pn-wav',
-	'audio/x-wav',
-] as const
-
+export const DEFAULT_GAIN = 1 as const
 export const BACKEND_PORT = 3000 as const
 
-export const DEFAULT_GAIN = 1 as const
+// audio
+export const audioMimeTypes = ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/mp3']
+
+export const CURSOR_IDLE_TIMEOUT_MS = 5000 as const
+export const CURSOR_INACTIVE_TIMEOUT_MS = 20_000 as const

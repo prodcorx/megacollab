@@ -97,7 +97,7 @@ export type User = z.infer<typeof UserSchema>
 export const timelinePosSchema = z.object({
 	beat: z.number().positive(),
 	trackId: z.string(),
-	trackYOffset: z.number().min(0).max(1),
+	trackYOffset: z.number(),
 })
 
 export type TimelinePos = z.output<typeof timelinePosSchema>

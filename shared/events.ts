@@ -55,6 +55,7 @@ function defineRequest<Req extends z.ZodType, Res extends z.ZodType>(opts: { req
 export const EVENTS = Object.freeze({
 	CLIENT_EMITS: {
 		'emit:updatepos': timelinePosSchema,
+		'emit:clearpos': z.null(),
 	},
 	SERVER_EMITS: {
 		// when empty, use null, never undefined
@@ -80,6 +81,14 @@ export const EVENTS = Object.freeze({
 			deleted_clips: z.array(clipSchema.shape['id']),
 		}),
 		'track:update': ClientTrackScema,
+		'clients:pos_updates': z.record(
+			z.string(),
+			z.object({
+				pos: timelinePosSchema,
+				display_name: UserSchema.shape['display_name'],
+				updatedAt: z.number(),
+			}),
+		),
 	},
 	CLIENT_REQUESTS: {
 		'get:ping': defineRequest({
