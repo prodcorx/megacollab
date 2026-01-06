@@ -16,6 +16,13 @@ This file tracks project-specific patterns, architectural decisions, and bug fix
 - **Learning**: If the user request or discovery contradicts an existing learning, verify its current relevance. If outdated, do not delete it; instead, move the title and a brief "reason for removal" to the **[Deprecated/Changelog]** section.
 - **Context**: This prevents "re-learning" old mistakes and maintains a clear history of architectural evolution.
 
+## [Workflow]
+
+### Mandatory Verification
+
+- **Learning**: Always verify implemented changes by running `bun run typecheck`, `bun run lint`, and `bun run format` before concluding the task.
+- **Context**: Ensuring the codebase remains type-safe, linted, and formatted is a hard requirement for all changes to prevent regression and maintain quality.
+
 ## [TypeScript & Code Style]
 
 ### Interface Avoidance
