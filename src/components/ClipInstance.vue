@@ -7,7 +7,10 @@
 		@contextmenu.prevent="rip"
 	>
 		<div class="clipHeader" :style="textStyles">
-			<p class="small title no-select">{{ props.audiofile.file_name }}</p>
+			<p class="small title no-select">
+				@{{ userClipDisplayComp || '' }} • {{ props.audiofile.file_name }} - 𝆕
+				{{ props.audiofile.creator_display_name }}
+			</p>
 		</div>
 
 		<div
@@ -44,6 +47,7 @@ import {
 	dragFromPoolState,
 	pixelRatio,
 	rightMouseButtonPressedOnTimeline,
+	user,
 } from '@/state'
 import type { Clip } from '~/schema'
 import { useElementBounding, useEventListener, watchThrottled, useElementHover } from '@vueuse/core'
@@ -78,6 +82,13 @@ type ClipProps = {
 }
 
 const props = defineProps<ClipProps>()
+
+const userClipDisplayComp = computed(() => {
+	if (user.value?.id === props.clip?.creator_user_id) return 'you'
+	return withinAudioPool.value
+		? props.audiofile.creator_display_name
+		: props.clip?.creator_display_name
+})
 
 async function rip() {
 	if (!props.clip) return

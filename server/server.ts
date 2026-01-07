@@ -230,6 +230,39 @@ io.on('connection', async (socket) => {
 			socket.broadcast.emit('audiofile:create', audioFile)
 		})
 
+		socket.on('get:track:delete', async (data, callback) => {
+			const { id } = data
+
+			// todo: check authorization (creator or belongs_to_user_id)
+
+			try {
+				const result = await db.deleteTrack(id)
+				const { deleted_clips, deleted_track } = result
+
+				callback({
+					success: true,
+					data: {
+						track_id: deleted_track.id,
+						deleted_clips,
+					},
+				})
+
+				socket.broadcast.emit('track:delete', {
+					track_id: deleted_track.id,
+					deleted_clips,
+				})
+			} catch (err) {
+				const error = err instanceof Error ? err.message : 'Unknown error'
+				callback({
+					success: false,
+					error: {
+						status: 'SERVER_ERROR',
+						message: `Database error: ${error}`,
+					},
+				})
+			}
+		})
+
 		socket.on('get:track:create', async (_, callback) => {
 			const newTrack: Omit<ServerTrack, 'order_index'> = {
 				id: nanoid(),

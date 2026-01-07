@@ -41,7 +41,12 @@ router.beforeEach(async (to, from, next) => {
 	}
 
 	if (isMobile()) {
-		return next({ name: 'not-supported' })
+		if (to.name !== 'not-supported') {
+			return next({ name: 'not-supported' })
+		}
+		return next()
+	} else if (to.name === 'not-supported') {
+		return next({ name: 'home' })
 	}
 
 	const res = await fetch('/api/auth/verify', {

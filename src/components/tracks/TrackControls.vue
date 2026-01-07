@@ -1,10 +1,22 @@
 <template>
-	<div class="track-controls-wrapper no-select" :style="wrapperStyles" @contextmenu.prevent>
-		<div v-for="([id, track], index) in sortedTracks" :key="id" class="track-controls">
+	<div class="track-controls-wrapper no-select" :style="wrapperStyles" ref="wrapperRef">
+		<div
+			v-for="([id, track], index) in sortedTracks"
+			:key="id"
+			class="track-controls"
+			@contextmenu.prevent="openContextMenu($event, id)"
+			:class="{ active: contextMenuTrackId === id }"
+		>
 			<p v-if="track.title" class="small no-select">{{ track.title }}</p>
 			<p v-else class="small dim track-title no-select">Track {{ index + 1 }}</p>
+
 			<UseElementBounding v-slot="{ top, height }" style="grid-area: vol">
-				<div class="volumeSlider" @pointerdown="startVolumeDrag($event, id, top, height)">
+				<div
+					class="volumeSlider"
+					@pointerdown="startVolumeDrag($event, id, top, height)"
+					@click.stop
+					@contextmenu.prevent.stop="resetVolume(id)"
+				>
 					<div
 						class="volume-meter-fill"
 						:style="{
@@ -20,25 +32,72 @@
 					<div class="volume-zero-marker"></div>
 				</div>
 			</UseElementBounding>
-			<p
-				v-if="track.belongs_to_display_name"
-				class="small dim no-select"
-				style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap"
+
+			<button
+				class="menu-trigger-btn"
+				@click.stop="toggleContextMenu(id)"
+				:class="{ active: contextMenuTrackId === id }"
+				style="grid-area: menu"
 			>
-				@{{ track.belongs_to_display_name }}
-			</p>
+				<Ellipsis :size="16" />
+			</button>
+
+			<!-- context menu -->
+			<div
+				v-if="contextMenuTrackId === id"
+				v-on-click-outside="() => (contextMenuTrackId = null)"
+				class="context-menu"
+				@contextmenu.stop.prevent
+				@click.stop
+			>
+				<div class="inner-menu-wrap">
+					<div class="menu-header">
+						<p
+							class="small bold"
+							style="
+								color: var(--text-color-primary);
+								overflow: hidden;
+								text-overflow: ellipsis;
+								white-space: nowrap;
+							"
+						>
+							{{ track.title || `Track ${index + 1}` }}
+						</p>
+						<p
+							class="small dim mono"
+							style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap"
+						>
+							@{{ track.belongs_to_display_name }}
+						</p>
+					</div>
+					<div
+						style="
+							border-top: 1px solid var(--border-primary);
+							margin-top: 0.5rem;
+							padding-bottom: 0.5rem;
+						"
+					></div>
+					<button class="default-button menu-btn delete" @mousedown="deleteTrack(id)">
+						<Trash2 :size="13" style="color: var(--text-color-secondary)" />
+						<p class="small">Delete Track</p>
+					</button>
+				</div>
+			</div>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-import { tracks, pxTrackHeight, altKeyPressed, controlKeyPressed } from '@/state'
-import { computed, reactive, useTemplateRef, watch, type CSSProperties } from 'vue'
-import { getTrackVolume, isPlaying, setTrackGain } from '@/audioEngine'
-import { useRafFn, useEventListener } from '@vueuse/core'
-import { UseElementBounding } from '@vueuse/components'
+import { tracks, pxTrackHeight, altKeyPressed, controlKeyPressed, clips } from '@/state'
+import { computed, reactive, useTemplateRef, watch, type CSSProperties, shallowRef } from 'vue'
+import { getTrackVolume, isPlaying, setTrackGain, unregisterTrack } from '@/audioEngine'
+import { useRafFn, useEventListener, onClickOutside } from '@vueuse/core'
+import { UseElementBounding, vOnClickOutside } from '@vueuse/components'
 import { socket } from '@/socket/socket'
 import { useToast } from '@/composables/useToast'
+import { Trash2, Ellipsis } from 'lucide-vue-next'
+import { DEFAULT_GAIN } from '~/constants'
+import type { Clip } from '~/schema'
 
 const wrapperStyles = computed((): CSSProperties => {
 	return {
@@ -75,7 +134,60 @@ watch(isPlaying, (playing) => {
 	}
 })
 
+// --- Context Menu Logic ---
+const contextMenuTrackId = shallowRef<string | null>(null)
+
+function openContextMenu(e: MouseEvent, trackId: string) {
+	contextMenuTrackId.value = trackId
+}
+
+function toggleContextMenu(trackId: string) {
+	if (contextMenuTrackId.value === trackId) {
+		contextMenuTrackId.value = null
+	} else {
+		contextMenuTrackId.value = trackId
+	}
+}
+
+async function deleteTrack(trackId: string) {
+	contextMenuTrackId.value = null
+
+	const track = tracks.get(trackId)
+	if (!track) return
+
+	const clipsToDelete: Clip[] = []
+
+	for (const [_, clip] of clips.entries()) {
+		if (clip.track_id === trackId) clipsToDelete.push(clip)
+	}
+
+	clipsToDelete.forEach((clip) => clips.delete(clip.id))
+
+	const optimisticTrack = { ...track }
+
+	unregisterTrack(trackId)
+	tracks.delete(trackId)
+
+	const res = await socket.emitWithAck('get:track:delete', { id: trackId })
+
+	if (!res.success) {
+		tracks.set(trackId, optimisticTrack)
+
+		clipsToDelete.forEach((clip) => clips.set(clip.id, clip))
+
+		addToast({
+			type: 'notification',
+			message: res.error.message,
+			icon: 'warning',
+			priority: 'high',
+			title: 'Failed to delete track',
+		})
+	}
+}
+
 function startVolumeDrag(e: PointerEvent, trackId: string, top: number, height: number) {
+	if (e.button !== 0) return
+
 	const target = e.currentTarget as HTMLElement
 	target.setPointerCapture(e.pointerId)
 
@@ -160,6 +272,34 @@ function startVolumeDrag(e: PointerEvent, trackId: string, top: number, height: 
 	const stopUp = useEventListener(window, 'pointerup', onEnd)
 	const stopLostCapture = useEventListener(target, 'lostpointercapture', onEnd)
 }
+
+async function resetVolume(trackId: string) {
+	const track = tracks.get(trackId)
+	if (!track) return
+
+	const initialGain = track.gain
+	const newGain = DEFAULT_GAIN
+
+	track.gain = newGain // todo: this should be done automatically by settrackgain
+	setTrackGain(trackId, newGain)
+
+	const res = await socket.emitWithAck('get:track:update', {
+		id: trackId,
+		changes: { gain: newGain },
+	})
+
+	if (!res.success) {
+		// Revert
+		track.gain = initialGain
+		setTrackGain(trackId, initialGain)
+		addToast({
+			type: 'notification',
+			message: res.error.message,
+			priority: 'medium',
+			icon: 'warning',
+		})
+	}
+}
 </script>
 
 <style scoped>
@@ -189,7 +329,7 @@ function startVolumeDrag(e: PointerEvent, trackId: string, top: number, height: 
 
 	display: grid;
 	grid-template-columns: 1fr auto;
-	grid-template-areas: 'title vol' '. vol';
+	grid-template-areas: 'title vol' 'menu vol';
 
 	column-gap: 0.2rem;
 
@@ -200,6 +340,12 @@ function startVolumeDrag(e: PointerEvent, trackId: string, top: number, height: 
 	box-shadow: 1px 0px 0px 0px var(--border-primary);
 
 	background-color: var(--bg-color);
+
+	position: relative;
+}
+
+.track-controls.active {
+	background-color: color-mix(in lch, var(--bg-color), white 5%);
 }
 
 .track-controls:first-child {
@@ -254,5 +400,93 @@ function startVolumeDrag(e: PointerEvent, trackId: string, top: number, height: 
 	background-color: color-mix(in lch, var(--border-primary), white 20%);
 	opacity: 0.5;
 	pointer-events: none;
+}
+
+/* Context Menu Styles */
+.context-menu {
+	position: absolute;
+	left: calc(100% + 0.5rem);
+	top: 0.5rem;
+	width: 14rem;
+	border-radius: 0.75rem;
+	display: grid;
+	z-index: 100;
+}
+
+.inner-menu-wrap {
+	display: grid;
+	border-radius: inherit;
+	padding: 0.5rem;
+	width: 100%;
+	box-shadow: 0px 0px 1rem 0rem var(--bg-color);
+	background-color: color-mix(in lch, var(--bg-color), white 10%);
+	border: 1px solid var(--border-primary);
+}
+
+.menu-header {
+	padding: 0.3rem 0.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+	max-width: 16rem;
+}
+
+.menu-btn {
+	background-color: transparent;
+	box-shadow: none;
+	justify-content: flex-start;
+	white-space: nowrap;
+	gap: 0.6rem;
+	padding-left: 0.6rem;
+}
+
+.menu-btn:hover {
+	background-color: color-mix(in lch, transparent, white 15%);
+	box-shadow: none;
+}
+
+.menu-btn.delete {
+	color: var(--text-color-primary);
+}
+
+.menu-btn.delete:hover {
+	background-color: color-mix(in lch, #ff4444, black 20%);
+	color: white;
+}
+
+.menu-trigger-btn {
+	background-color: transparent;
+	border: none;
+	color: var(--text-color-secondary);
+	opacity: 1;
+	padding: 0;
+	border-radius: 0.25rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	height: min-content;
+	width: min-content;
+
+	margin-top: auto;
+	position: relative;
+}
+
+.menu-trigger-btn::after {
+	content: '';
+	position: absolute;
+	top: -2px;
+	bottom: -2px;
+	left: -5px;
+	right: -5px;
+	background-color: inherit;
+	border-radius: 0.6rem;
+	z-index: -1;
+}
+
+.menu-trigger-btn:hover,
+.menu-trigger-btn.active {
+	background-color: color-mix(in lch, var(--bg-color), white 15%);
+	color: var(--text-color-primary);
 }
 </style>

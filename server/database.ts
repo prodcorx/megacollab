@@ -94,6 +94,7 @@ export const db = {
 	getOrCreateDevUser,
 	deleteAudioFile,
 	deleteSessionSafe,
+	deleteTrack,
 }
 
 const audioFileCache = new Map<string, ClientAudioFile>()
@@ -552,5 +553,39 @@ async function deleteAudioFile(
 	return {
 		deleted_clips: deleted_clip_ids || [],
 		deleted_file: fileData,
+	}
+}
+
+async function deleteTrack(
+	id: string,
+): Promise<{ deleted_clips: Clip['id'][]; deleted_track: ServerTrack }> {
+	const rows = await queryFn<ServerTrack & { deleted_clip_ids: ServerClip['id'][] | null }>(
+		`
+			WITH deleted_clips AS (
+				DELETE FROM ${CLIPS_TABLE}
+				WHERE track_id = $1
+				RETURNING id
+			),
+			deleted_track AS (
+				DELETE FROM ${TRACKS_TABLE}
+				WHERE id = $1
+				RETURNING *
+			)
+			SELECT 
+				deleted_track.*,
+				(SELECT array_agg(id) FROM deleted_clips) AS deleted_clip_ids
+			FROM deleted_track
+			`,
+		[id],
+	)
+
+	if (!rows.length) throw new Error(`Failed to delete track ${id}`)
+	const row = rows[0]!
+
+	const { deleted_clip_ids, ...trackData } = row
+
+	return {
+		deleted_clips: deleted_clip_ids || [],
+		deleted_track: trackData,
 	}
 }

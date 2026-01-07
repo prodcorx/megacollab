@@ -2,13 +2,19 @@
 
 Welcome. This file outlines how you should operate within this codebase to ensure consistency and high-quality output.
 
-## Persistent Learning Pattern
+**Always verify implemented changes by running `bun run typecheck`, `bun run lint`, and `bun run format` before concluding the task. Explicitly add this as a final step to your tasks/plans.**
 
-If you discover a specific project pattern, a fix for a recurring bug, or a preferred architectural style that is not yet documented:
+**TypeScript**
+Avoid using `interface`. Use `type` for all object and component definitions to maintain consistency across the codebase.
+Avoid `as any` wherever possible.
 
-1. Confirm the pattern is successful and intentional.
-2. Open `AGENT_LEARNINGS.md`.
-3. Append your discovery to the bottom of the file following the established format.
-4. If a user request contradicts a learning in `AGENT_LEARNINGS.md`, verify if that learning is still relevant. Only if outdated, move its title/summary to the **[Deprecated/Changelog]** section and state the reason for removal very concisely.
+**Vue**
+Use the Vue 3.5+ `useTemplateRef('refName')` composable for DOM element access.
 
-**Always check `AGENT_LEARNINGS.md` before starting a task to see if previous agents have documented relevant insights.**
+**Events**
+All socket events must be defined and typed in `shared/events.ts`.
+Use `socket.emitWithAck` for request-response flows.
+Check the `res.success` flag in response objects and handle `false` values by reverting optimistic updates or showing toasts.
+
+**Snapping**
+Respect the `altKeyPressed` state from `@/state.ts` to allow users to bypass quantization when it makes sense to do so.
