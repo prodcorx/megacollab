@@ -16,8 +16,22 @@ masterGain.connect(audioContext.destination)
 const trackGainNodes = new Map<string, GainNode>()
 const trackAnalysers = new Map<string, AnalyserNode>()
 
-const SCHEDULER_LOOP_INRERVAL_MS = 25 as const
+const SCHEDULER_LOOP_INRERVAL_MS = 100 as const
 const FFT_SIZE_VOLUMES = 256 as const
+const BACK_TRACKING_TIME_ON_PLAY = 0.05 as const
+
+const sortedClips = computed(() => {
+	return Array.from(clips.values()).sort((a, b) => a.start_beat - b.start_beat)
+})
+
+const maxClipDuration = computed(() => {
+	let max = 0
+	for (const clip of clips.values()) {
+		const duration = clip.end_beat - clip.start_beat
+		if (duration > max) max = duration
+	}
+	return max
+})
 
 // Playback State
 export const isPlaying = shallowRef(false)
@@ -250,17 +264,22 @@ const schedulerLoop = useIntervalFn(
 	() => {
 		const elapsedSeconds = audioContext.currentTime - playbackStartTime.value
 		const songTimeSeconds = elapsedSeconds + startOffset.value
-		const lookAheadLimitSec = songTimeSeconds + SCHEDULER_LOOP_INRERVAL_MS * 3
+		const songTimeBeats = sec_to_beats(songTimeSeconds)
 
-		for (const clip of clips.values()) {
-			if (activeSources.has(clip.id)) continue
+		const lookAheadLimitSec = songTimeSeconds + SCHEDULER_LOOP_INRERVAL_MS * 5
 
-			// todo: more efficient lookahead
+		const list = sortedClips.value
+		const startIndex = binarySearchStartTimesStartIndex(list, songTimeBeats)
+
+		for (let i = startIndex; i < list.length; i++) {
+			const clip = list[i]
+			if (!clip) continue
+
 			const clipStartSeconds = beats_to_sec(clip.start_beat)
+			if (clipStartSeconds > lookAheadLimitSec) break
 
-			if (clipStartSeconds > songTimeSeconds && clipStartSeconds <= lookAheadLimitSec) {
-				scheduleClipSource(clip, clipStartSeconds)
-			}
+			if (activeSources.has(clip.id)) continue
+			scheduleClipSource(clip, clipStartSeconds)
 		}
 
 		nextScheduleTime.value = lookAheadLimitSec
@@ -272,14 +291,19 @@ const schedulerLoop = useIntervalFn(
 
 		const loopActive = isLooping.value && loopRangeBeats.value != null && loopEndSec > loopStartSec
 
+		// todo: this should perhaps predict the loop and do negative overshooting,
+		// but for now its fine
+
 		if (loopActive) {
-			if (songTimeSeconds >= loopEndSec - 0.01) {
-				// wrap to start
-				seek(loopStartSec, { setAsRest: false })
+			// need the actual hardware songTimeSeconds to calculate overshoot
+			if (songTimeSeconds >= loopEndSec) {
+				const overshoot = songTimeSeconds - loopEndSec
+				seek(loopStartSec + overshoot, { setAsRest: false })
 				return
 			}
 		} else if (songTimeSeconds >= fullDurationSeconds.value) {
-			seek(0)
+			const overshoot = songTimeSeconds - fullDurationSeconds.value
+			seek(0 + overshoot, { setAsRest: false })
 		}
 	},
 	SCHEDULER_LOOP_INRERVAL_MS,
@@ -352,17 +376,30 @@ function scheduleClipSource(clip: Clip, whenAbsoluteSeconds: number) {
 }
 
 function scheduleInitialClips(startTimeSeconds: number) {
-	for (const clip of clips.values()) {
+	const startTimeBeats = sec_to_beats(startTimeSeconds)
+	const list = sortedClips.value
+
+	// start searching at current pos - longest clip duration backwards to save resources.
+
+	const searchStartBeats = Math.max(0, startTimeBeats - maxClipDuration.value)
+	const startIndex = binarySearchStartTimesStartIndex(list, searchStartBeats)
+
+	for (let i = startIndex; i < list.length; i++) {
+		const clip = list[i]
+		if (!clip) continue
+
+		// clip starts in future?
+		// -> scheduler will handle it
+		if (clip.start_beat > startTimeBeats) break
+
 		const clipStartSeconds = beats_to_sec(clip.start_beat)
 		const clipEndSeconds = beats_to_sec(clip.end_beat)
 
-		// 1. Starts in future?
-		if (clipStartSeconds > startTimeSeconds) continue // schedulerLoop will pick it up
-
-		// 2. Ended in past?
+		// clip ended in past?
+		// -> ignore
 		if (clipEndSeconds < startTimeSeconds) continue
 
-		// 3. Overlaps current moment!
+		// -> clip must be overlapping current time.
 		scheduleClipSource(clip, clipStartSeconds)
 	}
 }
@@ -382,7 +419,7 @@ export async function play() {
 
 	if (audioContext.state === 'suspended') await audioContext.resume()
 
-	playbackStartTime.value = audioContext.currentTime + 0.05
+	playbackStartTime.value = audioContext.currentTime + BACK_TRACKING_TIME_ON_PLAY
 	startOffset.value = restingPositionSec.value
 
 	nextScheduleTime.value = startOffset.value
@@ -424,7 +461,7 @@ export function seek(newTimeSeconds: number, opts?: { setAsRest?: boolean }) {
 	}
 
 	stopAllSources()
-	playbackStartTime.value = audioContext.currentTime + 0.05
+	playbackStartTime.value = audioContext.currentTime + BACK_TRACKING_TIME_ON_PLAY
 	startOffset.value = targetSeconds
 	currentTime.value = targetSeconds
 	nextScheduleTime.value = targetSeconds
@@ -449,4 +486,24 @@ export function reset() {
 
 	schedulerLoop.pause()
 	uiRAFLoop.pause()
+}
+
+function binarySearchStartTimesStartIndex(sortedClips: Clip[], searchBeat: Clip['start_beat']) {
+	let left: number = 0
+	let right: number = sortedClips.length - 1
+
+	while (left <= right) {
+		const mid = (left + right) >>> 1 // Unsigned right shift: equivalent to Math.floor((left + right) / 2)
+
+		if (sortedClips[mid]!.start_beat < searchBeat) {
+			left = mid + 1
+		} else {
+			right = mid - 1
+		}
+	}
+
+	// could store lastStartIndex, bc playhead only ever moves rightwards in time.
+	// but this optimisation is not needed for now.
+
+	return left
 }
