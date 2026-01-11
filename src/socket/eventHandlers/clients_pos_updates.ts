@@ -1,14 +1,16 @@
 import { otherUserPositions, user } from '@/state'
 import { defineSocketHandler } from '@/socket/socket'
 
+const inDev = import.meta.env.MODE === 'development'
+
 export default defineSocketHandler({
 	event: 'clients:pos_updates',
 	handler: (data) => {
 		const activeUserIds = new Set<string>()
 
 		for (const [userId, packet] of Object.entries(data)) {
-			// ignore self
-			if (user.value && userId === user.value.id) continue
+			// ignore self if not in dev
+			if (!inDev && user.value && userId === user.value.id) continue
 
 			otherUserPositions.set(userId, {
 				pos: packet.pos,

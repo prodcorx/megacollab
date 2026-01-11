@@ -94,10 +94,13 @@ type ClipProps = {
 const props = defineProps<ClipProps>()
 
 const userClipDisplayComp = computed(() => {
-	if (user.value?.id === props.clip?.creator_user_id) return 'you'
-	return withinAudioPool.value
-		? props.audiofile.creator_display_name
-		: props.clip?.creator_display_name
+	if (withinAudioPool.value) {
+		return props.audiofile.creator_user_id === user.value?.id
+			? 'you'
+			: props.audiofile.creator_display_name
+	} else {
+		return props.clip?.creator_user_id === user.value?.id ? 'you' : props.clip?.creator_display_name
+	}
 })
 
 async function rip() {
