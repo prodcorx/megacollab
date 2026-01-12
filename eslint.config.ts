@@ -10,6 +10,7 @@ export default [
 			files: ['**/*.{ts,mts,tsx,vue}'],
 			rules: {
 				indent: ['error', 'tab'],
+				'vue/html-indent': ['error', 'tab'],
 				'@typescript-eslint/no-unused-vars': [
 					'warn',
 					{ argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
